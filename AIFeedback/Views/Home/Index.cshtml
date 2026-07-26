@@ -1,54 +1,38 @@
-﻿@{
-    ViewData["Title"] = "Учебная Аналитика - Загрузка анкет";
+﻿@@model UploadViewModel
+
+@{
+    ViewData["Title"] = "Главная";
 }
 
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <h1 class="display-4 mb-4">Анализатор учебных анкет (ИИ-Агент)</h1>
-            <p class="lead mb-5">
-                Загрузите выгрузку анкет слушателей (Excel) для автоматического формирования аналитической справки и дашборда.
-            </p>
-
-            <div class="card shadow-sm">
-                <div class="card-body p-5">
-                    <!-- Форма отправляет файл на наш AnalyzerController -->
-                    <form id="uploadForm" asp-controller="Analyzer" asp-action="ProcessFile" method="post" enctype="multipart/form-data">
-                        <div class="mb-4">
-                            <label for="uploadFile" class="form-label fw-bold">Выберите файл .xlsx или .csv</label>
-                            <input class="form-control form-control-lg" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">ИИ-агент для анализа анкет</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Загрузите Excel-файл с анкетами, и наш агент автоматически сформирует аналитическую справку и дашборд.</p>
+                    <form asp-action="Process" asp-controller="Feedback" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="excelFile" class="form-label">Выберите файл (.xlsx)</label>
+                            <input type="file" class="form-control" id="excelFile" name="excelFile" accept=".xlsx,.xls" required>
+                            <!-- Убираем asp-validation-for, так как IFormFile не поддерживает стандартную валидацию -->
+                            @* <span asp-validation-for="ExcelFile" class="text-danger"></span> *@
+                            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                            {
+                                <span class="text-danger">@Model.ErrorMessage</span>
+                            }
                         </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                                <i class="bi bi-play-fill"></i> Запустить анализ
-                            </button>
+                        <div class="mb-3">
+                            <label for="providerName" class="form-label">LLM-провайдер (необязательно)</label>
+                            <input type="text" class="form-control" id="providerName" name="provider" placeholder="gigachat, groq, deepseek, ..." value="gigachat">
+                            <small class="form-text text-muted">Оставьте пустым для использования провайдера по умолчанию.</small>
                         </div>
+                        <button type="submit" class="btn btn-primary">Запустить анализ</button>
                     </form>
-
-                    <!-- Блок со спиннером загрузки (изначально скрыт) -->
-                    <div id="loadingSpinner" class="mt-4" style="display: none;">
-                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                        <h5 class="mt-3 text-muted">ИИ-агент анализирует данные...</h5>
-                        <p class="text-small text-muted">Пожалуйста, подождите. Это может занять несколько минут.</p>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        // Простой скрипт для отображения спиннера при отправке формы
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            var fileInput = document.getElementById('uploadFile');
-            if (fileInput.files.length > 0) {
-                document.getElementById('submitBtn').style.display = 'none';
-                document.getElementById('loadingSpinner').style.display = 'block';
-            }
-        });
-    </script>
-}

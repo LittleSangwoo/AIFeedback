@@ -1,0 +1,169 @@
+﻿@@model DashboardViewModel
+
+@{
+    ViewData["Title"] = Model.ProgramName;
+}
+
+<div class="container mt-4">
+    <h1>@Model.ProgramName</h1>
+    <p><strong>Дата:</strong> @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+    <p><strong>Количество слушателей:</strong> @Model.ListenerCount</p>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h4>Средние баллы по критериям</h4>
+            <ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Полезность</span>
+                    <span class="badge bg-primary">@Model.UsefulnessAvg.ToString("F2")</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Доступность</span>
+                    <span class="badge bg-primary">@Model.AvailabilityAvg.ToString("F2")</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Практико-ориентированность</span>
+                    <span class="badge bg-primary">@Model.PracticalityAvg.ToString("F2")</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Взаимодействие с КУ</span>
+                    <span class="badge bg-primary">@Model.InteractionAvg.ToString("F2")</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Вовлеченность (%)</span>
+                    <span class="badge bg-success">@Model.EngagementYesPercent.ToString("F1")%</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between fw-bold">
+                    <span>Общая удовлетворённость</span>
+                    <span class="badge bg-secondary">@Model.OverallSatisfaction.ToString("F2")</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-6">
+            <h4>Сентимент-анализ</h4>
+            <div class="progress" style="height: 30px;">
+                <div class="progress-bar bg-success" style="width: @Model.AiAnalysis?.Sentiment?.PositivePercent%;">
+                    @Model.AiAnalysis?.Sentiment?.PositivePercent.ToString("F0")% позитивных
+                </div>
+                <div class="progress-bar bg-warning" style="width: @Model.AiAnalysis?.Sentiment?.NeutralPercent%;">
+                    @Model.AiAnalysis?.Sentiment?.NeutralPercent.ToString("F0")% нейтральных
+                </div>
+                <div class="progress-bar bg-danger" style="width: @Model.AiAnalysis?.Sentiment?.NegativePercent%;">
+                    @Model.AiAnalysis?.Sentiment?.NegativePercent.ToString("F0")% негативных
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Топ-тем</h4>
+            @if (Model.AiAnalysis?.TopTopics != null && Model.AiAnalysis.TopTopics.Any())
+            {
+                <ul>
+                    @foreach (var topic in Model.AiAnalysis.TopTopics)
+                    {
+                        <li><strong>@topic.Name</strong> – упоминаний: @topic.MentionCount</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p>Нет данных.</p>
+            }
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Рекомендации</h4>
+            @if (Model.AiAnalysis?.Conclusions != null && Model.AiAnalysis.Conclusions.Any())
+            {
+                <ul>
+                    @foreach (var conclusion in Model.AiAnalysis.Conclusions)
+                    {
+                        <li><strong>@conclusion.Text</strong> – @conclusion.Recommendation (Приоритет: @conclusion.Priority)</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p>Нет рекомендаций.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Здесь будут графики (Chart.js) – оставляем место -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Визуализации</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="radarChart" width="400" height="300"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <canvas id="barChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+            <!-- Другие графики (тепловая карта, распределение, тренд) можно добавить здесь -->
+        </div>
+    </div>
+
+    <a asp-action="Index" class="btn btn-secondary mt-3">← К списку программ</a>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Пример: спайдер-график
+        const ctxRadar = document.getElementById('radarChart').getContext('2d');
+        const averages = @Html.Raw(Json.Serialize(Model.CriteriaAverages));
+        new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+        labels: Object.keys(averages),
+        datasets: [{
+        label: 'Средние баллы',
+        data: Object.values(averages),
+        fill: true,
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgb(54, 162, 235)',
+        pointBackgroundColor: 'rgb(54, 162, 235)'
+        }]
+        },
+        options: {
+        scales: {
+        r: {
+        min: 0,
+        max: 10
+        }
+        }
+        }
+        });
+
+        // Пример: столбчатая диаграмма
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+        labels: Object.keys(averages),
+        datasets: [{
+        label: 'Средние баллы',
+        data: Object.values(averages),
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgb(75, 192, 192)',
+        borderWidth: 1
+        }]
+        },
+        options: {
+        scales: {
+        y: {
+        beginAtZero: true,
+        max: 10
+        }
+        }
+        }
+        });
+    </script>
+}

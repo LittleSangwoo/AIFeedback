@@ -1,0 +1,33 @@
+﻿using AIFeedback.Models.DTOs;
+
+namespace AIFeedback.ViewModels
+{
+    public class DashboardViewModel
+    {
+        public int Id { get; set; }
+        public string ProgramName { get; set; } = string.Empty;
+        public int ListenerCount { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        // Числовые метрики
+        public double UsefulnessAvg { get; set; }
+        public double AvailabilityAvg { get; set; }
+        public double PracticalityAvg { get; set; }
+        public double InteractionAvg { get; set; }
+        public double EngagementYesPercent { get; set; }
+        public double OverallSatisfaction { get; set; }
+
+        // Результаты ИИ-анализа
+        public AiAnalysisResultDto? AiAnalysis { get; set; }
+
+        // Для визуализаций
+        public Dictionary<string, double> CriteriaAverages => new()
+        {
+            ["Полезность"] = UsefulnessAvg,
+            ["Доступность"] = AvailabilityAvg,
+            ["Практико-ориентированность"] = PracticalityAvg,
+            ["Взаимодействие с КУ"] = InteractionAvg,
+            ["Вовлеченность"] = EngagementYesPercent
+        };
+    }
+}

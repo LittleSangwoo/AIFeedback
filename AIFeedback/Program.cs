@@ -29,6 +29,21 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IAiService, AiService>();
 
+// Добавляем контекст БД (SQLite)
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Регистрируем репозиторий
+//builder.Services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>(); важно
+
+// Регистрируем сервисы (заглушки для Разработчика 2)
+//builder.Services.AddScoped<IExcelParserService, ExcelParserService>(); // важно будет реализован позже
+//builder.Services.AddScoped<IReportService, ReportService>(); // важно будет реализован позже
+
+// Наши сервисы
+builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
