@@ -12,12 +12,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Игнорируем ошибки SSL для GigaChat (из-за российских сертификатов)
-builder.Services.AddHttpClient<ILLMProvider, DynamicLlmProvider>()
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-    });
+//// Игнорируем ошибки SSL для GigaChat (из-за российских сертификатов)
+//builder.Services.AddHttpClient<ILLMProvider, DynamicLlmProvider>()
+//    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+//    {
+//        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+//    });
 
 // Регистрируем сервис настроек
 builder.Services.AddScoped<ILlmSettingsService, LlmSettingsService>();
