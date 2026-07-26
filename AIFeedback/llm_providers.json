@@ -1,0 +1,25 @@
+﻿{
+    "Providers": [
+        {
+            "Id": "Ollama_Local",
+            "BaseUrl": "http://localhost:11434/v1/chat/completions",
+            "ApiKey": "",
+            "Model": "llama3:8b-instruct-q4_K_M",
+            "AuthType": "OpenAI"
+        },
+        {
+            "Id": "Groq_Cloud",
+            "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
+            "ApiKey": "gsk_...",
+            "Model": "llama3-70b-8192",
+            "AuthType": "OpenAI"
+        },
+        {
+            "Id": "GigaChat_Ru",
+            "BaseUrl": "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+            "ApiKey": "NGEz...",
+            "AuthType": "GigaChat"
+        }
+    ],
+    "ActiveProviderId": "Ollama_Local"
+}
