@@ -1,6 +1,7 @@
 using AIFeedback.Data;
-using AIFeedback.Services.LLM;
 using AIFeedback.Services;
+using AIFeedback.Services.LLM;
+using AIFeedback.Services.LLM.Providers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,13 @@ builder.Services.AddHttpClient<ILLMProvider, DynamicLlmProvider>()
 
 // Регистрируем сервис настроек
 builder.Services.AddScoped<ILlmSettingsService, LlmSettingsService>();
+
+// Регистрация HttpClientFactory
+builder.Services.AddHttpClient();
+
+// Фабрика и сервис
+builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
+builder.Services.AddScoped<IAiService, AiService>();
 
 var app = builder.Build();
 
