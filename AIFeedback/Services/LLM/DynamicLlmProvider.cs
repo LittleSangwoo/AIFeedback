@@ -38,7 +38,7 @@ namespace AIFeedback.Services.LLM
                 },
                 temperature = temperature,
                 stream = false,
-                response_format = new { type = "json_object" } // Требуем JSON
+                //response_format = new { type = "json_object" } // Требуем JSON
             };
 
             var requestContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
@@ -47,8 +47,8 @@ namespace AIFeedback.Services.LLM
                 Content = requestContent
             };
 
-            // Разруливаем авторизацию
-            if (providerConfig.AuthType.Equals("GigaChat", StringComparison.OrdinalIgnoreCase))
+            // string.Equals безопасно обработает null и просто вернет false
+            if (string.Equals(providerConfig.AuthType, "GigaChat", StringComparison.OrdinalIgnoreCase))
             {
                 var token = await GetGigaChatTokenAsync(providerConfig.ApiKey);
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

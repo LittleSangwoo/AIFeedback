@@ -5,7 +5,7 @@
         "IsLocal": false,
         "ApiUrl": "https://api.groq.com/openai/v1/chat/completions",
         "ModelName": "llama-3.3-70b-versatile",
-        "ApiKey": "ваш_ключ",
+        "ApiKey": "-",
         "Scope": null
     },
     {

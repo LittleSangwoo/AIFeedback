@@ -1,9 +1,9 @@
 ﻿@@model DashboardViewModel
-@model AIFeedback.ViewModels.AnalysisResultViewModel
+@@model AIFeedback.ViewModels.AnalysisResultViewModel
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Дашборд программы: @Model.SessionName</h2>
+        <h2>Дашборд программы: @Model.ProgramName</h2>
         <!-- КРИТЕРИЙ 3.4: Экспорт в PDF и Word -->
         <div>
             <button class="btn btn-outline-danger" onclick="window.print()"><i class="bi bi-file-pdf"></i> Экспорт в PDF (Дашборд)</button>
@@ -13,8 +13,8 @@
 
     <!-- Основные метрики -->
     <div class="row text-center mb-4">
-        <div class="col-md-3"><div class="card p-3 shadow-sm bg-light"><h5>Общая удовлетворенность</h5><h2 class="text-primary">@Model.GeneralScore / 10</h2></div></div>
-        <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Вовлеченность</h5><h2 class="text-success">@Model.EngagementPercent%</h2></div></div>
+        <div class="col-md-3"><div class="card p-3 shadow-sm bg-light"><h5>Общая удовлетворенность</h5><h2 class="text-primary">@Model.OverallSatisfaction / 10</h2></div></div>
+        <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Вовлеченность</h5><h2 class="text-success">@Model.EngagementYesPercent%</h2></div></div>
         <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Сентимент (Позитив)</h5><h2 class="text-info" id="sentimentPos">...</h2></div></div>
     </div>
 
@@ -82,11 +82,11 @@
 
 <script>
     // 1. Получаем данные из C# Модели
-    const averages = [@Model.AvgUtility, @Model.AvgPractice, @Model.AvgAccessibility, @Model.AvgEngagement];
+    const averages = [@Model.UsefulnessAvg, @Model.PracticalityAvg, @Model.AvailabilityAvg, @Model.EngagementYesPercent];
     const labels = ['Полезность', 'Практика', 'Доступность', 'Взаимодействие с КУ'];
     
     // Парсим JSON, который сгенерировал ИИ (твоя работа)
-    const aiData = @Html.Raw(Model.AiInsightsJson ?? "{}");
+    const aiData = @Html.Raw(Model.AiAnalysis.Conclusions ?? "{}");
     
     // Заполняем данные на странице
     if(aiData.sentiment) {
