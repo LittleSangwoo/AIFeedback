@@ -29,6 +29,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IAiService, AiService>();
 
+// Регистрация фабрики провайдеров (если она используется через DI)
+builder.Services.AddScoped<AIFeedback.Services.LLM.Providers.LLMProviderFactory>();
+
+builder.Services.AddScoped<AIFeedback.Services.LLM.ILLMProvider, AIFeedback.Services.LLM.DynamicLlmProvider>();
+
+// Если IAiService тоже еще не зарегистрирован, убедись, что есть эта строка:
+builder.Services.AddScoped<AIFeedback.Services.IAiService, AIFeedback.Services.AiService>();
+
 // Добавляем контекст БД (SQLite)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
