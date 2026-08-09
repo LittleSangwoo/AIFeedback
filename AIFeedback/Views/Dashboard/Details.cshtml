@@ -4,10 +4,37 @@
     ViewData["Title"] = Model.ProgramName;
 }
 
+<<<<<<< Updated upstream
 <div class="container mt-4">
     <h1>@Model.ProgramName</h1>
     <p><strong>Дата:</strong> @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
     <p><strong>Количество слушателей:</strong> @Model.ListenerCount</p>
+=======
+    @if (Model.AiAnalysis?.Sentiment != null)
+{
+    <div class="progress">
+        <div class="progress-bar bg-success" style="width: @Model.AiAnalysis.Sentiment.PositivePercent%">
+            @Model.AiAnalysis.Sentiment.PositivePercent.ToString("F0")% позитивных
+        </div>
+        <div class="progress-bar bg-warning" style="width: @Model.AiAnalysis.Sentiment.NeutralPercent%">
+            @Model.AiAnalysis.Sentiment.NeutralPercent.ToString("F0")% нейтральных
+        </div>
+        <div class="progress-bar bg-danger" style="width: @Model.AiAnalysis.Sentiment.NegativePercent%">
+            @Model.AiAnalysis.Sentiment.NegativePercent.ToString("F0")% негативных
+        </div>
+    </div>
+}
+else
+{
+    <p>Нет данных сентимент-анализа</p>
+}
+    <!-- Основные метрики -->
+    <div class="row text-center mb-4">
+        <div class="col-md-3"><div class="card p-3 shadow-sm bg-light"><h5>Общая удовлетворенность</h5><h2 class="text-primary">@Model.OverallSatisfaction / 10</h2></div></div>
+        <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Вовлеченность</h5><h2 class="text-success">@Model.EngagementYesPercent%</h2></div></div>
+        <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Сентимент (Позитив)</h5><h2 class="text-info" id="sentimentPos">...</h2></div></div>
+    </div>
+>>>>>>> Stashed changes
 
     <div class="row mt-4">
         <div class="col-md-6">
@@ -113,6 +140,7 @@
     <a asp-action="Index" class="btn btn-secondary mt-3">← К списку программ</a>
 </div>
 
+<<<<<<< Updated upstream
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -120,6 +148,43 @@
         const ctxRadar = document.getElementById('radarChart').getContext('2d');
         const averages = @Html.Raw(Json.Serialize(Model.CriteriaAverages));
         new Chart(ctxRadar, {
+=======
+<!-- Подключаем Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // 1. Получаем данные из C# Модели
+    const averages = [
+        @Model.UsefulnessAvg,
+        @Model.PracticalityAvg,
+        @Model.AvailabilityAvg,
+        @Model.InteractionAvg,
+        @Model.EngagementYesPercent
+    ];
+    const labels = ['Полезность', 'Практика', 'Доступность', 'Взаимодействие с КУ', 'Вовлеченность'];
+
+    // Парсим JSON от ИИ (структура AiAnalysisResultDto)
+    const aiData = @Html.Raw(Json.Serialize(Model.AiAnalysis ?? new { }));
+
+    // Заполняем сентимент
+    if (aiData.sentiment) {
+        document.getElementById('sentimentPos').innerText = (aiData.sentiment.positivePercent || 0) + '%';
+        document.getElementById('sentimentNeu').innerText = (aiData.sentiment.neutralPercent || 0) + '%';
+        document.getElementById('sentimentNeg').innerText = (aiData.sentiment.negativePercent || 0) + '%';
+    }
+
+    // РЕНДЕР ГРАФИКОВ
+
+    // 1. Bar Chart (Средние)
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'Средний балл', data: averages, backgroundColor: 'rgba(54, 162, 235, 0.6)' }] },
+        options: { scales: { y: { beginAtZero: true, max: 10 } } }
+    });
+
+    // 2. Radar Chart (Спайдер)
+    new Chart(document.getElementById('radarChart'), {
+>>>>>>> Stashed changes
         type: 'radar',
         data: {
         labels: Object.keys(averages),
@@ -142,6 +207,7 @@
         }
         });
 
+<<<<<<< Updated upstream
         // Пример: столбчатая диаграмма
         const ctxBar = document.getElementById('barChart').getContext('2d');
         new Chart(ctxBar, {
@@ -167,3 +233,48 @@
         });
     </script>
 }
+=======
+    // 3. Распределение (1–3, 4–7, 8–10)
+    const distData = [@Model.Dist1to3, @Model.Dist4to7, @Model.Dist8to10];
+    new Chart(document.getElementById('distributionChart'), {
+        type: 'bar',
+        data: { labels: ['1-3 (Низкая)', '4-7 (Средняя)', '8-10 (Высокая)'], datasets: [{ label: 'Кол-во слушателей', data: distData, backgroundColor: ['#dc3545', '#ffc107', '#198754'] }] },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+
+    // 4. График тренда (история)
+    const historyLabels = @Html.Raw(Json.Serialize(Model.HistoryLabels));
+    const historyData = @Html.Raw(Json.Serialize(Model.HistoryData));
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: { 
+            labels: historyLabels.length ? historyLabels : ['Поток 1', 'Поток 2', 'Поток 3', 'Текущий'], 
+            datasets: [{ 
+                label: 'Общая удовлетворенность', 
+                data: historyData.length ? historyData : [8.1, 8.5, 8.2, @Model.OverallSatisfaction], 
+                borderColor: '#0d6efd', 
+                tension: 0.3 
+            }] 
+        },
+        options: { scales: { y: { min: 0, max: 10 } } }
+    });
+
+    // Отрисовка ИИ-рекомендаций
+    const recommendations = aiData.conclusions || [];
+    const insightsHtml = recommendations.map(r => 
+        `<div class="mb-3">
+            <strong><span class="badge bg-${r.priority === 'High' ? 'danger' : 'warning'}">${r.priority || 'Средний'}</span> ${r.recommendation || r.text}</strong><br/>
+            <small class="text-muted"><i class="bi bi-graph-up"></i> Обоснование: ${r.text || ''}</small>
+        </div>`
+    ).join('');
+    document.getElementById('aiInsightsContainer').innerHTML = insightsHtml || '<p>Нет рекомендаций.</p>';
+</script>
+
+<style>
+    /* Прячем кнопки при экспорте в PDF */
+    @@media print {
+        .btn, form, header, footer { display: none !important; }
+        .card { border: none !important; box-shadow: none !important; }
+    }
+</style>
+>>>>>>> Stashed changes

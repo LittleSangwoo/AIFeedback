@@ -180,12 +180,14 @@ namespace AIFeedback.Controllers
         private readonly IExcelParserService _excelParser;
         private readonly IAiService _aiService;
         private readonly IAnalysisResultRepository _repository;
+        private readonly ILogger<DashboardController> _logger; // добавить
 
-        public FeedbackController(IExcelParserService excelParser, IAiService aiService, IAnalysisResultRepository repository)
+        public FeedbackController(IExcelParserService excelParser, ILogger<DashboardController> logger, IAiService aiService, IAnalysisResultRepository repository)
         {
             _excelParser = excelParser;
             _aiService = aiService;
             _repository = repository;
+            _logger = logger; // добавить
         }
 
         [HttpGet]
@@ -205,6 +207,9 @@ namespace AIFeedback.Controllers
 
             // 1. Парсим Excel (заглушка, реализует напарница)
             var (programName, listenerCount, numericAverages, allComments) = await _excelParser.ParseAsync(stream);
+
+            _logger.LogInformation("Парсинг завершён: Program={Program}, Count={Count}, Usefulness={Usef}",
+    programName, listenerCount, numericAverages["Usefulness"]);
 
             // 2. Вызываем ИИ-аналитику
             var systemPrompt = "Ты — аналитик образовательных программ. Проанализируй комментарии слушателей.";

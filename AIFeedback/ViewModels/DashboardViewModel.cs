@@ -29,5 +29,16 @@ namespace AIFeedback.ViewModels
             ["Взаимодействие с КУ"] = InteractionAvg,
             ["Вовлеченность"] = EngagementYesPercent
         };
+<<<<<<< Updated upstream
+=======
+
+        public int Dist1to3 { get; set; }
+        public int Dist4to7 { get; set; }
+        public int Dist8to10 { get; set; }
+
+        // Для графика тренда (история) – список средних баллов по предыдущим потокам
+        public List<double> HistoryData { get; set; } = new List<double>();
+        public List<string> HistoryLabels { get; set; } = new List<string>();
+>>>>>>> Stashed changes
     }
 }
