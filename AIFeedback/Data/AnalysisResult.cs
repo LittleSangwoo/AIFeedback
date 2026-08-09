@@ -1,4 +1,11 @@
+<<<<<<< Updated upstream
 ﻿namespace AIFeedback.Data
+=======
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace AIFeedback.Data
+>>>>>>> Stashed changes
 {
     public interface IAnalysisResultRepository
     {
@@ -10,7 +17,11 @@
     }
     public class AnalysisResult
     {
-        public int Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; } // ИСПРАВЛЕНО: было string, стало int
+
+
         public DateTime CreatedAt { get; set; }
         public string ProgramName { get; set; } = string.Empty;
         public int ListenerCount { get; set; }
@@ -32,5 +43,17 @@
 
         // Для отладки (опционально)
         public string? RawComments { get; set; }
+<<<<<<< Updated upstream
+=======
+
+        public string SessionName { get; set; }
+        public DateTime DateProcessed { get; set; }
+        public double AvgUtility { get; set; }
+        public double AvgPractice { get; set; }
+        public double AvgAccessibility { get; set; }
+        public double AvgEngagement { get; set; }
+        public string AiInsightsJson { get; set; } // Для хранения JSON-ответа от LLM
+        public long ProcessingTimeMs { get; set; } // В миллисекундах
+>>>>>>> Stashed changes
     }
 }

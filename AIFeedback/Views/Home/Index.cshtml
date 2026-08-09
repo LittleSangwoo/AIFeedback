@@ -1,38 +1,43 @@
 ﻿@@model UploadViewModel
 
 @{
-    ViewData["Title"] = "Главная";
+    ViewData["Title"] = "Учебная аналитика";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="card-title mb-0">ИИ-агент для анализа анкет</h3>
-                </div>
-                <div class="card-body">
-                    <p class="lead">Загрузите Excel-файл с анкетами, и наш агент автоматически сформирует аналитическую справку и дашборд.</p>
-                    <form asp-action="Process" asp-controller="Feedback" method="post" enctype="multipart/form-data">
+<div class="container text-center mt-5">
+    <h1 class="display-5 fw-bold">Аналитика образовательных программ</h1>
+    <p class="lead">Загрузите выгрузку анкет (Excel), и ИИ-агент подготовит отчет за несколько секунд.</p>
+
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-5">
+                    <form asp-controller="Analyzer" asp-action="ProcessUpload" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="excelFile" class="form-label">Выберите файл (.xlsx)</label>
-                            <input type="file" class="form-control" id="excelFile" name="excelFile" accept=".xlsx,.xls" required>
-                            <!-- Убираем asp-validation-for, так как IFormFile не поддерживает стандартную валидацию -->
-                            @* <span asp-validation-for="ExcelFile" class="text-danger"></span> *@
-                            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                            {
-                                <span class="text-danger">@Model.ErrorMessage</span>
-                            }
+                            <input class="form-control form-control-lg" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="providerName" class="form-label">LLM-провайдер (необязательно)</label>
-                            <input type="text" class="form-control" id="providerName" name="provider" placeholder="gigachat, groq, deepseek, ..." value="gigachat">
-                            <small class="form-text text-muted">Оставьте пустым для использования провайдера по умолчанию.</small>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Запустить анализ</button>
+                        <!-- КРИТЕРИЙ 4.1: Одна кнопка для старта -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="analyzeBtn" onclick="showLoader()">
+                            <i class="bi bi-magic"></i> Сгенерировать аналитику
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Лоадер, чтобы пользователь понимал, что идет ИИ-анализ -->
+    <div id="loader" class="mt-4" style="display:none;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">ИИ-агент анализирует тексты... Пожалуйста, подождите (до 15 сек).</p>
+    </div>
 </div>
+
+<script>
+    function showLoader() {
+        if(document.getElementById('uploadFile').value) {
+            document.getElementById('analyzeBtn').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+        }
+    }
+</script>
