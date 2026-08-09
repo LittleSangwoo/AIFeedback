@@ -1,4 +1,5 @@
 ﻿using AIFeedback.Models.DTOs;
+using AIFeedback.Services.LLM;
 using AIFeedback.Services.LLM.Providers;
 using System.Text.Json;
 
@@ -6,30 +7,46 @@ namespace AIFeedback.Services
 {
     public class AiService : IAiService
     {
-        private readonly ILLMProviderFactory _providerFactory;
+        private readonly ILLMProvider _llmProvider;
         private readonly ILogger<AiService> _logger;
 
-        public AiService(ILLMProviderFactory providerFactory, ILogger<AiService> logger)
+        public AiService(ILLMProvider llmProvider, ILogger<AiService> logger)
         {
-            _providerFactory = providerFactory;
+            _llmProvider = llmProvider;
             _logger = logger;
         }
 
         public async Task<AiAnalysisResultDto> AnalyzeFeedbackAsync(string systemPrompt, string userPrompt, string providerName = null)
         {
-            var provider = _providerFactory.GetProvider(providerName);
-            var response = await provider.AnalyzeTextAsync(systemPrompt, userPrompt, 0.0);
-
             try
             {
-                var result = JsonSerializer.Deserialize<AiAnalysisResultDto>(response);
-                return result ?? new AiAnalysisResultDto();
+                // Вызываем провайдер. Если метод в ILLMProvider не принимает providerName,
+                // просто убери этот параметр из вызова ниже.
+                var jsonResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt);
+
+                jsonResponse = CleanJson(jsonResponse);
+
+                var result = JsonSerializer.Deserialize<AiAnalysisResultDto>(
+                    jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                return result;
             }
-            catch (JsonException ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка десериализации ответа от LLM. Ответ: {Response}", response);
-                throw new InvalidOperationException("Не удалось распарсить ответ от LLM", ex);
+                _logger.LogError(ex, "Ошибка при парсинге JSON от LLM.");
+                throw new ApplicationException("Сбой при ИИ-анализе текста. Проверьте формат ответа модели.", ex);
             }
+        }
+
+        private string CleanJson(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return "{}";
+            var json = input.Trim();
+            if (json.StartsWith("```json")) json = json.Substring(7);
+            if (json.StartsWith("```")) json = json.Substring(3);
+            if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
+            return json.Trim();
         }
     }
 }

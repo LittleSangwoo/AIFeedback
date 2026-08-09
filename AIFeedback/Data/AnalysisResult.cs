@@ -1,4 +1,6 @@
-﻿namespace AIFeedback.Data
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AIFeedback.Data
 {
     public interface IAnalysisResultRepository
     {
@@ -32,5 +34,15 @@
 
         // Для отладки (опционально)
         public string? RawComments { get; set; }
+
+        [Key]
+        public string SessionName { get; set; }
+        public DateTime DateProcessed { get; set; }
+        public double AvgUtility { get; set; }
+        public double AvgPractice { get; set; }
+        public double AvgAccessibility { get; set; }
+        public double AvgEngagement { get; set; }
+        public string AiInsightsJson { get; set; } // Для хранения JSON-ответа от LLM
+        public long ProcessingTimeMs { get; set; } // В миллисекундах
     }
 }
