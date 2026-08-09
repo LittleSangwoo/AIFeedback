@@ -25,10 +25,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IAiService, AiService>();
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
+
 // Регистрация фабрики провайдеров (если она используется через DI)
 builder.Services.AddScoped<AIFeedback.Services.LLM.Providers.LLMProviderFactory>();
 
@@ -40,12 +37,10 @@ builder.Services.AddScoped<AIFeedback.Services.IAiService, AIFeedback.Services.A
 // Регистрация репозитория для работы с БД
 builder.Services.AddScoped<AIFeedback.Data.IAnalysisResultRepository, AIFeedback.Data.AnalysisResultRepository>();
 
->>>>>>> Stashed changes
 // Добавляем контекст БД (SQLite)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
->>>>>>> Stashed changes
 // Регистрируем репозиторий
 builder.Services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
 
@@ -71,7 +66,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Dashboard}/{action=Details}/{id?}")
+    pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.Run();

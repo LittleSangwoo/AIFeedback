@@ -1,11 +1,8 @@
-<<<<<<< Updated upstream
-﻿namespace AIFeedback.Data
-=======
+
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AIFeedback.Data
->>>>>>> Stashed changes
 {
     public interface IAnalysisResultRepository
     {
@@ -43,8 +40,6 @@ namespace AIFeedback.Data
 
         // Для отладки (опционально)
         public string? RawComments { get; set; }
-<<<<<<< Updated upstream
-=======
 
         public string SessionName { get; set; }
         public DateTime DateProcessed { get; set; }
@@ -54,6 +49,5 @@ namespace AIFeedback.Data
         public double AvgEngagement { get; set; }
         public string AiInsightsJson { get; set; } // Для хранения JSON-ответа от LLM
         public long ProcessingTimeMs { get; set; } // В миллисекундах
->>>>>>> Stashed changes
     }
 }
