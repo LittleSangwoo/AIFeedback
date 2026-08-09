@@ -31,6 +31,7 @@ namespace AIFeedback.Controllers
                 InteractionAvg = r.InteractionAvg,
                 EngagementYesPercent = r.EngagementYesPercent,
                 OverallSatisfaction = r.OverallSatisfaction
+
             }).ToList();
             return View(viewModels);
         }

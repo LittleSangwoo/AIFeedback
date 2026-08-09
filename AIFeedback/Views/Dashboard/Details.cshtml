@@ -1,5 +1,4 @@
 ﻿@@model DashboardViewModel
-@@model AIFeedback.ViewModels.AnalysisResultViewModel
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -119,7 +118,7 @@
     // Здесь подставь массив из прошлых сессий
     new Chart(document.getElementById('trendChart'), {
         type: 'line',
-        data: { labels: ['Поток 1', 'Поток 2', 'Поток 3', 'Текущий поток'], datasets: [{ label: 'Общая удовлетворенность', data: [8.1, 8.5, 8.2, @Model.GeneralScore], borderColor: '#0d6efd', tension: 0.3 }] },
+        data: { labels: ['Поток 1', 'Поток 2', 'Поток 3', 'Текущий поток'], datasets: [{ label: 'Общая удовлетворенность', data: [8.1, 8.5, 8.2, @Model.OverallSatisfaction], borderColor: '#0d6efd', tension: 0.3 }] },
         options: { scales: { y: { min: 0, max: 10 } } }
     });
 

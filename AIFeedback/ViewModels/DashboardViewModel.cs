@@ -29,5 +29,9 @@ namespace AIFeedback.ViewModels
             ["Взаимодействие с КУ"] = InteractionAvg,
             ["Вовлеченность"] = EngagementYesPercent
         };
+
+        public int Dist1to3 { get; set; }
+        public int Dist4to7 { get; set; }
+        public int Dist8to10 { get; set; }
     }
 }
