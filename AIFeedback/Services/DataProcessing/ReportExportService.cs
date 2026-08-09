@@ -10,11 +10,33 @@ using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using AIFeedback.Models;
 using AIFeedback.Models.DTOs;
+using AIFeedback.Services.Report; // Подключаем пространство имен с интерфейсом
 
 namespace AIFeedback.Services.DataProcessing
 {
-    public class ReportExportService
+    public class ReportExportService : IReportService
     {
+        // ====================================================================
+        // РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА НАПАРНИЦЫ (IReportService)
+        // ====================================================================
+        public Task<Stream> GenerateWordReportAsync(AiAnalysisResultDto aiResult, string programName, int listenerCount)
+        {
+            // Формируем временный объект stats из параметров напарницы
+            var stats = new ProgramSessionStats
+            {
+                ProgramName = programName,
+                TotalListeners = listenerCount,
+                TrainingPeriod = "Не указано"
+            };
+
+            // Запускаем твой рабочий метод генерации
+            var bytes = GenerateDocxReport(stats, aiResult);
+
+            // Превращаем массив байтов в Stream, как того требует интерфейс напарницы
+            Stream stream = new MemoryStream(bytes);
+            return Task.FromResult(stream);
+        }
+
         // ====================================================================
         // 1. ЭКСПОРТ В WORD (.docx)
         // ====================================================================
