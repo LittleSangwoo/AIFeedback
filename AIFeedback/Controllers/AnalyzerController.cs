@@ -29,8 +29,8 @@ namespace AIFeedback.Controllers
             _reportService = reportService;
         }
 
-        [HttpPost] // Убрал задвоение атрибута
-        public async Task<IActionResult> ProcessFile(IFormFile uploadFile)
+        [HttpPost]
+        public async Task<IActionResult> ProcessFile(IFormFile uploadFile, string providerName)
         {
             if (uploadFile == null || uploadFile.Length == 0)
             {
@@ -81,13 +81,13 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
 }";
             string userPrompt = $"Балл полезности: {avgUtility}\nОтветы:\n{rawComments}";
 
-            // Защитный блок для ИИ
-            AiAnalysisResultDto analysisResult = new AiAnalysisResultDto
-            {
-                Sentiment = new SentimentStats { PositivePercent = 0, NeutralPercent = 0, NegativePercent = 0 },
-                TopTopics = new List<Topic>(),
-                Conclusions = new List<Conclusion>()
-            };
+            // ИСПРАВЛЕНИЕ 1: Метод УЖЕ возвращает готовый DTO, десериализация в контроллере больше не нужна!
+            AiAnalysisResultDto analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, providerName);
+            //// 3. Ты: Десериализуешь JSON в DTO
+            //var analysisResult = JsonSerializer.Deserialize<AiAnalysisResultDto>(aiResultJson, new JsonSerializerOptions
+            //{
+            //    PropertyNameCaseInsensitive = true
+            //});
 
             try
             {
@@ -129,7 +129,6 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
 
             await _repository.AddAsync(analysisRecord);
 
-            // 6. Редирект на дашборд
             return RedirectToAction("Details", "Dashboard", new { id = analysisRecord.Id });
         }
     }

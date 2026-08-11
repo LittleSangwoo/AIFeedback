@@ -20,7 +20,7 @@ namespace AIFeedback.Services.LLM.Providers
             _httpClient.BaseAddress = new Uri(_options.ApiUrl);
         }
 
-        public override async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0)
+        public override async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null)
         {
             await EnsureTokenAsync();
             var request = new HttpRequestMessage(HttpMethod.Post, "");

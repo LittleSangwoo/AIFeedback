@@ -1,35 +1,138 @@
-﻿@@model UploadViewModel
+﻿@model UploadViewModel
 
 @{
     ViewData["Title"] = "Учебная аналитика";
 }
 
-<div class="container text-center mt-5">
-    <h1 class="display-5 fw-bold">Аналитика образовательных программ</h1>
-    <p class="lead">Загрузите выгрузку анкет (Excel), и ИИ-агент подготовит отчет за несколько секунд.</p>
+<style>
+    /* Premium Dark Theme Styles */
+    body {
+        background-color: #0f0f13 !important;
+        color: #e0e0e0 !important;
+    }
 
-    <div class="row justify-content-center mt-4">
+    .hero-title {
+        background: linear-gradient(135deg, #b388ff 0%, #7c4dff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+
+    .glass-card {
+        background: rgba(30, 30, 40, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(124, 77, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 77, 255, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .glass-card:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 30px rgba(124, 77, 255, 0.3);
+        }
+
+    .custom-file-input {
+        background-color: #1a1a24;
+        border: 2px dashed #4527a0;
+        color: #fff;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+        .custom-file-input:focus, .custom-file-input:hover {
+            border-color: #b388ff;
+            background-color: #232332;
+            box-shadow: none;
+        }
+
+    .btn-neon {
+        background: linear-gradient(45deg, #651fff, #7c4dff);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(101, 31, 255, 0.4);
+        transition: all 0.3s ease;
+    }
+
+        .btn-neon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(101, 31, 255, 0.6);
+            color: white;
+        }
+
+    .loader-pulse {
+        color: #b388ff;
+    }
+
+    .custom-select-neon {
+        background-color: #1a1a24;
+        border: 1px solid #4527a0;
+        color: #fff;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+        .custom-select-neon:focus {
+            border-color: #b388ff;
+            box-shadow: 0 0 15px rgba(124, 77, 255, 0.3);
+            background-color: #232332;
+            color: #fff;
+        }
+</style>
+
+<div class="container text-center mt-5 pt-5">
+    <h1 class="display-4 hero-title mb-3">Аналитика образовательных программ</h1>
+    <p class="lead text-secondary mb-5">Загрузите выгрузку анкет, и ИИ-агент подготовит отчет за несколько секунд.</p>
+
+    <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="card shadow-sm">
+            <div class="card glass-card">
                 <div class="card-body p-5">
+                    <!-- Форма отправки оставлена без изменений для бэкенда -->
                     <form asp-controller="Analyzer" asp-action="ProcessFile" method="post" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <input class="form-control form-control-lg" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
+                        <div class="mb-4">
+                            <label for="uploadFile" class="form-label text-start w-100 fw-bold" style="color: #b388ff;">Файл выгрузки (Excel)</label>
+                            <input class="form-control form-control-lg custom-file-input p-3" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
                         </div>
-                        <!-- КРИТЕРИЙ 4.1: Одна кнопка для старта -->
-                        <button type="submit" class="btn btn-primary btn-lg w-100" id="analyzeBtn" onclick="showLoader()">
-                            <i class="bi bi-magic"></i> Сгенерировать аналитику
+                        
+                        <button type="submit" class="btn btn-neon btn-lg w-100 py-3" id="analyzeBtn" onclick="showLoader()">
+                            <i class="bi bi-magic me-2"></i> Сгенерировать аналитику
                         </button>
+
+                        <!-- Поле выбора нейросети -->
+                        <div class="mb-4 text-start">
+                            <label for="providerName" class="form-label fw-bold" style="color: #b388ff;">Выберите ИИ-модель</label>
+                            <select class="form-select form-select-lg p-3 custom-select-neon" id="providerName" name="providerName" required>
+                                @if (ViewBag.Providers != null && ViewBag.Providers.Count > 0)
+                                {
+                                    foreach (var provider in ViewBag.Providers)
+                                    {
+                                        <option value="@provider">@provider</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <!-- Запасной вариант, если ViewBag пустой -->
+                                    <option value="groq">Groq</option>
+                                    <option value="gigachat">GigaChat</option>
+                                    <option value="yandexgpt">YandexGPT</option>
+                                }
+                            </select>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Лоадер, чтобы пользователь понимал, что идет ИИ-анализ -->
-    <div id="loader" class="mt-4" style="display:none;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">ИИ-агент анализирует тексты... Пожалуйста, подождите (до 15 сек).</p>
+    <!-- Обновленный лоадер -->
+    <div id="loader" class="mt-5" style="display:none;">
+        <div class="spinner-grow loader-pulse" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="mt-3" style="color: #b388ff;">ИИ-агент анализирует тексты...</h5>
+        <p class="text-secondary">Пожалуйста, подождите (до 15 сек). Мы выявляем скрытые инсайты.</p>
     </div>
 </div>
 

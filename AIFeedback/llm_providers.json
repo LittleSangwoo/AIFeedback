@@ -3,8 +3,8 @@
         "Id": "234e2493-4f0f-45c8-9f52-8372424241e7",
         "Name": "groq",
         "IsLocal": false,
-        "ApiUrl": "https://api.groq.com/openai/v1/chat/completions",
-        "ModelName": "llama-3.3-70b-versatile",
+        "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
+        "Model": "llama-3.3-70b-versatile",
         "ApiKey": "-",
         "Scope": null
     },
@@ -12,8 +12,8 @@
         "Id": "298ee187-abe1-4001-a23b-7056283fe80a",
         "Name": "gigachatApi",
         "IsLocal": false,
-        "ApiUrl": "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
-        "ModelName": "GigaChat",
+        "BaseUrl": "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+        "Model": "GigaChat",
         "ApiKey": "ваш_client_id",
         "Scope": "ваш_secret"
     },
@@ -21,8 +21,8 @@
         "Id": "2f598b2f-a25b-4252-844d-293807c346c2",
         "Name": "ollama local1",
         "IsLocal": true,
-        "ApiUrl": "http://ollama-server:11434/v1/chat/completions",
-        "ModelName": "llama3",
+        "BaseUrl": "http://ollama-server:11434/v1/chat/completions",
+        "Model": "llama3",
         "ApiKey": "",
         "Scope": null
     },
@@ -30,8 +30,8 @@
         "Id": "87179d76-753a-42f6-8529-2a989987237f",
         "Name": "yandexgpt",
         "IsLocal": false,
-        "ApiUrl": "https://ai.api.cloud.yandex.net/v1/chat/completions",
-        "ModelName": "gpt://b1g1i2lmp3nsmkf9793r/yandexgpt/latest",
+        "BaseUrl": "https://ai.api.cloud.yandex.net/v1/chat/completions",
+        "Model": "gpt://b1g1i2lmp3nsmkf9793r/yandexgpt/latest",
         "ApiKey": "ваш_iam_token",
         "Scope": "ваш_folder_id"
     }

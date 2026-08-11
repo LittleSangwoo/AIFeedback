@@ -19,7 +19,7 @@ namespace AIFeedback.Services.LLM.Providers
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.IamToken);
         }
 
-        public override async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0)
+        public override async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null)
         {
             var payload = new
             {

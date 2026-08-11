@@ -1,5 +1,6 @@
 ﻿using AIFeedback.Models;
 using System.Text.Json;
+using System.Linq;
 
 namespace AIFeedback.Services
 {
@@ -25,11 +26,21 @@ namespace AIFeedback.Services
                 return new LlmConfiguration();
             }
 
-            var json = File.ReadAllText(_configFilePath);
-            return JsonSerializer.Deserialize<LlmConfiguration>(json, new JsonSerializerOptions
+            string json =  File.ReadAllText("llm_providers.json");
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new LlmConfiguration();
+            }
+
+            // 1. Сначала парсим JSON в список (потому что в файле квадратные скобки [ ] )
+            var configs = JsonSerializer.Deserialize<List<LlmConfiguration>>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
-            }) ?? new LlmConfiguration();
+            });
+
+            // 2. Возвращаем ПЕРВЫЙ элемент из списка. Если список пустой или null — возвращаем пустую конфигурацию.
+            return configs?.FirstOrDefault() ?? new LlmConfiguration();
         }
 
         public void SaveConfiguration(LlmConfiguration config)

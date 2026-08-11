@@ -35,13 +35,16 @@ namespace AIFeedback.Services
                     cleanedJson,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                return result ?? GetFallbackAnalysisResult();
+                if (result == null) throw new InvalidOperationException("ИИ вернул пустой результат, парсинг JSON не удался.");
+                return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка вызова LLM. Активирован защитный режим. Сырой ответ был: '{RawResponse}'", rawResponse);
                 // Защитный механизм для устойчивости демо на чемпионате (Критерий 3.3)
-                return GetFallbackAnalysisResult();
+                // УДАЛИ ИЛИ ЗАКОММЕНТИРУЙ: return GetFallbackAnalysisResult();
+
+                throw; // Честно пробрасываем ошибку дальше
             }
         }
 

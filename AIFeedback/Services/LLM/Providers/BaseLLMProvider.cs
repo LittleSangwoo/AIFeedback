@@ -16,7 +16,7 @@ namespace AIFeedback.Services.LLM.Providers
             _logger = logger;
         }
 
-        public abstract Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0);
+        public abstract Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null);
 
         protected virtual async Task<string> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
