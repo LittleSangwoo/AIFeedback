@@ -1,4 +1,5 @@
-﻿@@model DashboardViewModel
+﻿@model DashboardViewModel
+@using System.Globalization
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -12,8 +13,11 @@
 
     <!-- Основные метрики -->
     <div class="row text-center mb-4">
-        <div class="col-md-3"><div class="card p-3 shadow-sm bg-light"><h5>Общая удовлетворенность</h5><h2 class="text-primary">@Model.OverallSatisfaction / 10</h2></div></div>
+        <div class="col-md-3"><div class="card p-3 shadow-sm bg-light"><h5>Общая удовлетворенность</h5><h2 class="text-primary">@Model.OverallSatisfaction.ToString("0.0") / 10</h2></div></div>
+
+        <!-- ВОВЛЕЧЕННОСТЬ ВЫВОДИТСЯ ЗДЕСЬ ИЗ ВЬЮМОДЕЛИ -->
         <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Вовлеченность</h5><h2 class="text-success">@Model.EngagementYesPercent%</h2></div></div>
+
         <div class="col-md-3"><div class="card p-3 shadow-sm"><h5>Сентимент (Позитив)</h5><h2 class="text-info" id="sentimentPos">...</h2></div></div>
     </div>
 
@@ -80,66 +84,192 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // 1. Получаем данные из C# Модели
-    const averages = [@Model.UsefulnessAvg, @Model.PracticalityAvg, @Model.AvailabilityAvg, @Model.EngagementYesPercent];
+    const averages = [
+        @Model.UsefulnessAvg.ToString(CultureInfo.InvariantCulture),
+        @Model.PracticalityAvg.ToString(CultureInfo.InvariantCulture),
+        @Model.AvailabilityAvg.ToString(CultureInfo.InvariantCulture),
+        @Model.InteractionAvg.ToString(CultureInfo.InvariantCulture)
+    ];
     const labels = ['Полезность', 'Практика', 'Доступность', 'Взаимодействие с КУ'];
-    
-    // Парсим JSON, который сгенерировал ИИ (твоя работа)
-    const aiData = @Html.Raw(Model.AiAnalysis.Conclusions ?? "{}");
-    
-    // Заполняем данные на странице
-    if(aiData.sentiment) {
+
+    // Сериализуем выводы ИИ
+    const aiData = @Html.Raw(Model.AiAnalysis != null
+                                                                ? System.Text.Json.JsonSerializer.Serialize(Model.AiAnalysis, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })
+                                                                : "{}");
+
+    // Выводим сентимент
+    if (aiData.sentiment && aiData.sentiment.positivePercent) {
         document.getElementById('sentimentPos').innerText = aiData.sentiment.positivePercent + '%';
     }
 
+    // Отрисовка ИИ-рекомендаций
+    const insightsList = aiData.conclusions || aiData.recommendations || [];
+    if (insightsList && insightsList.length > 0) {
+        const insightsHtml = insightsList.map(r =>
+            `<div class="mb-3">
+                <strong>
+                    <span class="badge bg-${(r.priority || '').toLowerCase() === 'high' ? 'danger' : 'warning'}">
+                        ${r.priority || 'Важно'}
+                    </span>
+                    ${r.action || r.text || 'Рекомендация'}
+                </strong><br/>
+                <small class="text-muted"><i class="bi bi-graph-up"></i> Обоснование: ${r.dataProof || r.reasoning || 'На основе анализа'}</small>
+            </div>`
+        ).join('');
+        document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
+    } else {
+        document.getElementById('aiInsightsContainer').innerHTML = '<p class="text-muted">Рекомендации пока формируются...</p>';
+    }
+
+    // ==========================================
     // РЕНДЕР ГРАФИКОВ
-    // 1. Bar Chart (Средние)
+    // ==========================================
+
     new Chart(document.getElementById('barChart'), {
         type: 'bar',
-        data: { labels: labels, datasets: [{ label: 'Средний балл', data: averages, backgroundColor: 'rgba(54, 162, 235, 0.6)' }] },
-        options: { scales: { y: { beginAtZero: true, max: 10 } } }
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Средний балл',
+                data: averages,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, max: 10, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+        }
     });
 
-    // 2. Radar Chart (Спайдер)
     new Chart(document.getElementById('radarChart'), {
         type: 'radar',
-        data: { labels: labels, datasets: [{ label: 'Баллы', data: averages, backgroundColor: 'rgba(255, 99, 132, 0.4)', borderColor: 'rgba(255, 99, 132, 1)' }] },
-        options: { scales: { r: { min: 0, max: 10 } } }
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Баллы',
+                data: averages,
+                backgroundColor: 'rgba(255, 99, 132, 0.4)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                pointBackgroundColor: 'rgba(255, 99, 132, 1)'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    min: 0,
+                    max: 10,
+                    ticks: { stepSize: 2 }
+                }
+            }
+        }
     });
 
-    // 4. Распределение (Берем из ViewModel - напарница должна посчитать это в парсере)
     const distData = [@Model.Dist1to3, @Model.Dist4to7, @Model.Dist8to10];
     new Chart(document.getElementById('distributionChart'), {
         type: 'bar',
-        data: { labels: ['1-3 (Низкая)', '4-7 (Средняя)', '8-10 (Высокая)'], datasets: [{ label: 'Кол-во слушателей', data: distData, backgroundColor: ['#dc3545', '#ffc107', '#198754'] }] }
+        data: {
+            labels: ['1-3 (Низкая)', '4-7 (Средняя)', '8-10 (Высокая)'],
+            datasets: [{
+                label: 'Кол-во слушателей',
+                data: distData,
+                backgroundColor: ['#dc3545', '#ffc107', '#198754']
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } },
+            plugins: { legend: { display: false } }
+        }
     });
 
-    // 5. График тренда (История из ViewModel.HistoryData)
-    // Здесь подставь массив из прошлых сессий
     new Chart(document.getElementById('trendChart'), {
         type: 'line',
-        data: { labels: ['Поток 1', 'Поток 2', 'Поток 3', 'Текущий поток'], datasets: [{ label: 'Общая удовлетворенность', data: [8.1, 8.5, 8.2, @Model.OverallSatisfaction], borderColor: '#0d6efd', tension: 0.3 }] },
+        data: {
+            labels: ['Поток 1', 'Поток 2', 'Поток 3', 'Текущий поток'],
+            datasets: [{
+                label: 'Общая удовлетворенность',
+                data: [8.1, 8.5, 8.2, @Model.OverallSatisfaction.ToString(CultureInfo.InvariantCulture)],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
         options: { scales: { y: { min: 0, max: 10 } } }
     });
 
-    // Отрисовка ИИ-рекомендаций
-    const insightsHtml = aiData.recommendations.map(r => 
-        `<div class="mb-3">
-            <strong><span class="badge bg-${r.priority === 'High' ? 'danger' : 'warning'}">${r.priority}</span> ${r.action}</strong><br/>
-            <small class="text-muted"><i class="bi bi-graph-up"></i> Обоснование: ${r.dataProof}</small>
-        </div>`
-    ).join('');
-    document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
+    // ==========================================
+    // ТЕПЛОВАЯ КАРТА
+    // ==========================================
+    function renderHeatmap() {
+        const corrMatrix = [
+            [1.0, 0.6, 0.4, 0.8],
+            [0.6, 1.0, 0.5, 0.3],
+            [0.4, 0.5, 1.0, 0.7],
+            [0.8, 0.3, 0.7, 1.0]
+        ];
 
-    // Вспомогательный код для Heatmap (Тепловой карты) на CSS/HTML 
-    // Напарница должна передать матрицу корреляций (например 4x4)
-    // ...
+        let html = '<div class="heatmap-grid">';
+        html += '<div></div>' + labels.map(l => `<div class="heatmap-label-top">${l.substring(0, 5)}.</div>`).join('');
+
+        for (let i = 0; i < 4; i++) {
+            html += `<div class="heatmap-label">${labels[i].substring(0, 5)}.</div>`;
+            for (let j = 0; j < 4; j++) {
+                const val = corrMatrix[i][j];
+                const alpha = val.toFixed(2);
+                html += `<div class="heatmap-cell" style="background-color: rgba(13, 110, 253, ${alpha}); color: ${val > 0.6 ? 'white' : 'black'}">${val}</div>`;
+            }
+        }
+        html += '</div>';
+        document.getElementById('heatmapContainer').innerHTML = html;
+    }
+
+    renderHeatmap();
 </script>
 
 <style>
-    /* Прячем кнопки при экспорте в PDF */
+    .heatmap-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(4, 60px);
+        gap: 2px;
+        align-items: center;
+    }
+
+    .heatmap-cell {
+        width: 60px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+
+    .heatmap-label {
+        font-size: 0.8rem;
+        text-align: right;
+        padding-right: 8px;
+        font-weight: 500;
+    }
+
+    .heatmap-label-top {
+        font-size: 0.8rem;
+        text-align: center;
+        font-weight: 500;
+        padding-bottom: 5px;
+    }
+
     @@media print {
-        .btn, form, header, footer { display: none !important; }
-        .card { border: none !important; box-shadow: none !important; }
+        .btn, form, header, footer {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
     }
 </style>

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 namespace AIFeedback.Services.Excel
 {
     // ==========================================
-    // 1. ИНТЕРФЕЙС НАПАРНИЦЫ (Обновлен!)
+    // 1. ИНТЕРФЕЙС НАПАРНИЦЫ
     // ==========================================
     public interface IExcelParserService
     {
@@ -45,6 +45,10 @@ namespace AIFeedback.Services.Excel
                 // --- ТЕ САМЫЕ СЧЕТЧИКИ ДЛЯ ГРАФИКА ---
                 int dist1to3 = 0, dist4to7 = 0, dist8to10 = 0;
 
+                // --- СЧЕТЧИКИ ДЛЯ ВОВЛЕЧЕННОСТИ ---
+                int engagedCount = 0;
+                int totalEngagementAnswers = 0;
+
                 try
                 {
                     using var workbook = new XLWorkbook(fileStream);
@@ -53,7 +57,7 @@ namespace AIFeedback.Services.Excel
                     var headerRow = worksheet.FirstRowUsed();
                     if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0);
 
-                    int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1;
+                    int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1, engagementCol = -1;
                     var textColumns = new List<int>();
 
                     foreach (var cell in headerRow.CellsUsed())
@@ -65,7 +69,12 @@ namespace AIFeedback.Services.Excel
                         else if (header.Contains("практическую часть по 10")) practicalityCol = colIndex;
                         else if (header.Contains("доступность материала программы по 10")) accessibilityCol = colIndex;
                         else if (header.Contains("взаимодействие по 10")) interactionCol = colIndex;
-                        else if (!header.Contains("ф.и.о.") && !header.Contains("место вашей работы") && !header.Contains("категории относится"))
+
+                        // --- ИЩЕМ КОЛОНКУ С ОТСТРАНЕННОСТЬЮ ---
+                        // Используем if, а не else if, чтобы колонка также попала в textColumns и ИИ мог забрать причины отстраненности
+                        if (header.Contains("отстраненность")) engagementCol = colIndex;
+
+                        if (!header.Contains("ф.и.о.") && !header.Contains("место вашей работы") && !header.Contains("категории относится"))
                         {
                             textColumns.Add(colIndex);
                         }
@@ -92,6 +101,18 @@ namespace AIFeedback.Services.Excel
 
                         if (interactionCol != -1 && TryParseInt(row.Cell(interactionCol).Value.ToString(), out int i))
                         { interactionList.Add(i); userScores.Add(i); }
+
+                        // --- СЧИТАЕМ ВОВЛЕЧЕННОСТЬ ---
+                        if (engagementCol != -1)
+                        {
+                            var detachmentAnswer = row.Cell(engagementCol).Value.ToString()?.Trim().ToLower();
+                            if (!string.IsNullOrWhiteSpace(detachmentAnswer))
+                            {
+                                totalEngagementAnswers++;
+                                // Если ответ содержит "нет" (нет отстраненности), значит человек вовлечен
+                                if (detachmentAnswer.Contains("нет")) engagedCount++;
+                            }
+                        }
 
                         // --- СЧИТАЕМ РАСПРЕДЕЛЕНИЕ ДЛЯ ДАШБОРДА ---
                         if (userScores.Count > 0)
@@ -124,7 +145,9 @@ namespace AIFeedback.Services.Excel
                     { "Usefulness", usefulnessList.Count > 0 ? usefulnessList.Average() : 0 },
                     { "Practicality", practicalityList.Count > 0 ? practicalityList.Average() : 0 },
                     { "Accessibility", accessibilityList.Count > 0 ? accessibilityList.Average() : 0 },
-                    { "Interaction", interactionList.Count > 0 ? interactionList.Average() : 0 }
+                    { "Interaction", interactionList.Count > 0 ? interactionList.Average() : 0 },
+                    // --- ПРОЦЕНТ ВОВЛЕЧЕННОСТИ ---
+                    { "Engagement", totalEngagementAnswers > 0 ? Math.Round((double)engagedCount / totalEngagementAnswers * 100) : 0 }
                 };
 
                 // Отдаем всё контроллерам
