@@ -203,35 +203,63 @@ namespace AIFeedback.Controllers
 
             using var stream = excelFile.OpenReadStream();
 
-            // 1. Парсим Excel (заглушка, реализует напарница)
-            var (programName, listenerCount, numericAverages, allComments) = await _excelParser.ParseAsync(stream);
+            // 1. Надежный парсинг Excel (получаем данные + счетчики для диаграммы)
+            var (programName, listenerCount, numericAverages, allComments, dist1to3, dist4to7, dist8to10) = await _excelParser.ParseAsync(stream);
 
-            // 2. Вызываем ИИ-аналитику
-            var systemPrompt = "Ты — аналитик образовательных программ. Проанализируй комментарии слушателей.";
-            var userPrompt = $"Комментарии:\n{string.Join("\n", allComments)}";
-            var aiResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, provider);
-
-            // 3. Сохраняем результат в БД
+            // 2. Базовый объект для сохранения (ему не нужен ИИ, чтобы работать!)
             var analysisResult = new Data.AnalysisResult
             {
                 CreatedAt = DateTime.UtcNow,
                 ProgramName = programName,
                 ListenerCount = listenerCount,
-                UsefulnessAvg = numericAverages["Usefulness"],
-                AvailabilityAvg = numericAverages["Availability"],
-                PracticalityAvg = numericAverages["Practicality"],
-                InteractionAvg = numericAverages["Interaction"],
-                EngagementYesPercent = numericAverages["EngagementYesPercent"],
-                OverallSatisfaction = (numericAverages["Usefulness"] + numericAverages["Availability"] + numericAverages["Practicality"] + numericAverages["Interaction"]) / 4.0,
-                ThemesJson = JsonSerializer.Serialize(aiResult.TopTopics),
-                SentimentJson = JsonSerializer.Serialize(aiResult.Sentiment),
-                ProblemsJson = JsonSerializer.Serialize(new List<string>()), // пока заглушка
-                QuotesJson = JsonSerializer.Serialize(new List<string>()),  // пока заглушка
-                RecommendationsJson = JsonSerializer.Serialize(aiResult.Conclusions.Select(c => c.Recommendation).ToList())
+                UsefulnessAvg = numericAverages.GetValueOrDefault("Usefulness", 0),
+                AvailabilityAvg = numericAverages.GetValueOrDefault("Accessibility", 0),
+                PracticalityAvg = numericAverages.GetValueOrDefault("Practicality", 0),
+                InteractionAvg = numericAverages.GetValueOrDefault("Interaction", 0),
+                EngagementYesPercent = 0,
+                OverallSatisfaction = (numericAverages.GetValueOrDefault("Usefulness", 0) +
+                                       numericAverages.GetValueOrDefault("Practicality", 0)) / 2.0,
+
+                // Сохраняем счетчики для круговой диаграммы
+                Dist1to3 = dist1to3,
+                Dist4to7 = dist4to7,
+                Dist8to10 = dist8to10,
+
+                // Пустые заглушки для ИИ по умолчанию
+                ThemesJson = "[]",
+                SentimentJson = "{}",
+                ProblemsJson = "[]",
+                QuotesJson = "[]",
+                RecommendationsJson = "[]"
             };
+
+            // 3. Пытаемся запустить ИИ-аналитику опционально (если упадет — дашборд всё равно откроется!)
+            try
+            {
+                if (!string.IsNullOrEmpty(provider))
+                {
+                    var systemPrompt = "Ты — аналитик образовательных программ. Проанализируй комментарии слушателей.";
+                    var userPrompt = $"Комментарии:\n{string.Join("\n", allComments)}";
+                    var aiResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, provider);
+
+                    if (aiResult != null)
+                    {
+                        analysisResult.ThemesJson = JsonSerializer.Serialize(aiResult.TopTopics);
+                        analysisResult.SentimentJson = JsonSerializer.Serialize(aiResult.Sentiment);
+                        analysisResult.RecommendationsJson = JsonSerializer.Serialize(aiResult.Conclusions.Select(c => c.Recommendation).ToList());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // ИИ отвалился, но мы это просто логируем и идем дальше, не ломая пользователю загрузку!
+                Console.WriteLine($"Предупреждение: ИИ-анализ пропущен из-за ошибки: {ex.Message}");
+            }
+
+            // 4. Сохраняем результат в БД
             await _repository.AddAsync(analysisResult);
 
-            // 4. Переход на страницу с результатом
+            // 5. Переход на страницу с результатом (дашборд откроется в любом случае!)
             var model = new ProcessingViewModel
             {
                 AnalysisId = analysisResult.Id,
@@ -241,6 +269,7 @@ namespace AIFeedback.Controllers
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow
             };
+
             return View(model);
         }
     }

@@ -55,6 +55,13 @@ namespace AIFeedback.Controllers
                 InteractionAvg = result.InteractionAvg,
                 EngagementYesPercent = result.EngagementYesPercent,
                 OverallSatisfaction = result.OverallSatisfaction,
+
+                // --- НОВЫЕ СТРОЧКИ ДЛЯ КРУГОВОЙ ДИАГРАММЫ ---
+                Dist1to3 = result.Dist1to3,
+                Dist4to7 = result.Dist4to7,
+                Dist8to10 = result.Dist8to10,
+                // --------------------------------------------
+
                 AiAnalysis = new Models.DTOs.AiAnalysisResultDto
                 {
                     Sentiment = JsonSerializer.Deserialize<Models.DTOs.SentimentStats>(result.SentimentJson) ?? new Models.DTOs.SentimentStats(),

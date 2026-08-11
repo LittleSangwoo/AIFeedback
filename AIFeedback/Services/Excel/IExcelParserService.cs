@@ -5,15 +5,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace AIFeedback.Services.Excel
 {
     // ==========================================
-    // 1. ИНТЕРФЕЙС НАПАРНИЦЫ
+    // 1. ИНТЕРФЕЙС НАПАРНИЦЫ (Обновлен!)
     // ==========================================
     public interface IExcelParserService
     {
-        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments)> ParseAsync(Stream fileStream);
+        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10)> ParseAsync(Stream fileStream);
     }
 
     // ==========================================
@@ -28,7 +29,7 @@ namespace AIFeedback.Services.Excel
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments)> ParseAsync(Stream fileStream)
+        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10)> ParseAsync(Stream fileStream)
         {
             return await Task.Run(() =>
             {
@@ -41,13 +42,16 @@ namespace AIFeedback.Services.Excel
                 string programName = "Анализируемая программа";
                 int listenerCount = 0;
 
+                // --- ТЕ САМЫЕ СЧЕТЧИКИ ДЛЯ ГРАФИКА ---
+                int dist1to3 = 0, dist4to7 = 0, dist8to10 = 0;
+
                 try
                 {
                     using var workbook = new XLWorkbook(fileStream);
                     var worksheet = workbook.Worksheet(1);
 
                     var headerRow = worksheet.FirstRowUsed();
-                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments);
+                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0);
 
                     int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1;
                     var textColumns = new List<int>();
@@ -57,9 +61,9 @@ namespace AIFeedback.Services.Excel
                         string header = cell.Value.ToString()?.ToLower() ?? string.Empty;
                         int colIndex = cell.Address.ColumnNumber;
 
-                        if (header.Contains("полезность программы по 10-балльной")) usefulnessCol = colIndex;
-                        else if (header.Contains("практическую часть по 10-балльной")) practicalityCol = colIndex;
-                        else if (header.Contains("доступность материала программы по 10-балльной")) accessibilityCol = colIndex;
+                        if (header.Contains("полезность программы по 10")) usefulnessCol = colIndex;
+                        else if (header.Contains("практическую часть по 10")) practicalityCol = colIndex;
+                        else if (header.Contains("доступность материала программы по 10")) accessibilityCol = colIndex;
                         else if (header.Contains("взаимодействие по 10")) interactionCol = colIndex;
                         else if (!header.Contains("ф.и.о.") && !header.Contains("место вашей работы") && !header.Contains("категории относится"))
                         {
@@ -68,17 +72,37 @@ namespace AIFeedback.Services.Excel
                     }
 
                     var range = worksheet.RangeUsed();
-                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments);
+                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0);
 
                     var rows = range.RowsUsed().Skip(1).ToList();
                     listenerCount = rows.Count;
 
                     foreach (var row in rows)
                     {
-                        if (usefulnessCol != -1 && TryParseInt(row.Cell(usefulnessCol).Value.ToString(), out int u)) usefulnessList.Add(u);
-                        if (practicalityCol != -1 && TryParseInt(row.Cell(practicalityCol).Value.ToString(), out int p)) practicalityList.Add(p);
-                        if (accessibilityCol != -1 && TryParseInt(row.Cell(accessibilityCol).Value.ToString(), out int a)) accessibilityList.Add(a);
-                        if (interactionCol != -1 && TryParseInt(row.Cell(interactionCol).Value.ToString(), out int i)) interactionList.Add(i);
+                        var userScores = new List<int>();
+
+                        if (usefulnessCol != -1 && TryParseInt(row.Cell(usefulnessCol).Value.ToString(), out int u))
+                        { usefulnessList.Add(u); userScores.Add(u); }
+
+                        if (practicalityCol != -1 && TryParseInt(row.Cell(practicalityCol).Value.ToString(), out int p))
+                        { practicalityList.Add(p); userScores.Add(p); }
+
+                        if (accessibilityCol != -1 && TryParseInt(row.Cell(accessibilityCol).Value.ToString(), out int a))
+                        { accessibilityList.Add(a); userScores.Add(a); }
+
+                        if (interactionCol != -1 && TryParseInt(row.Cell(interactionCol).Value.ToString(), out int i))
+                        { interactionList.Add(i); userScores.Add(i); }
+
+                        // --- СЧИТАЕМ РАСПРЕДЕЛЕНИЕ ДЛЯ ДАШБОРДА ---
+                        if (userScores.Count > 0)
+                        {
+                            double avgScore = userScores.Average();
+                            int roundedScore = (int)Math.Round(avgScore, MidpointRounding.AwayFromZero);
+
+                            if (roundedScore >= 1 && roundedScore <= 3) dist1to3++;
+                            else if (roundedScore >= 4 && roundedScore <= 7) dist4to7++;
+                            else if (roundedScore >= 8 && roundedScore <= 10) dist8to10++;
+                        }
 
                         foreach (int colIndex in textColumns)
                         {
@@ -103,14 +127,19 @@ namespace AIFeedback.Services.Excel
                     { "Interaction", interactionList.Count > 0 ? interactionList.Average() : 0 }
                 };
 
-                return (programName, listenerCount, averages, allComments);
+                // Отдаем всё контроллерам
+                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10);
             });
         }
 
         private bool TryParseInt(string? value, out int result)
         {
             result = 0;
-            if (int.TryParse(value?.Trim(), out int val))
+            if (string.IsNullOrWhiteSpace(value)) return false;
+
+            // Извлекаем первое попавшееся число из строки (справится и с "10.0", и с "8 - средне")
+            var match = Regex.Match(value.Trim(), @"\d+");
+            if (match.Success && int.TryParse(match.Value, out int val))
             {
                 if (val >= 1 && val <= 10)
                 {

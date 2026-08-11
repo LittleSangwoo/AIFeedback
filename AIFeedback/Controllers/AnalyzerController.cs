@@ -73,39 +73,56 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
 }";
             string userPrompt = $"Балл полезности: {avgUtility}\nОтветы:\n{rawComments}";
 
-            // ИСПРАВЛЕНИЕ 1: Метод УЖЕ возвращает готовый DTO, десериализация в контроллере больше не нужна!
-            AiAnalysisResultDto analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, "groq");
-            //// 3. Ты: Десериализуешь JSON в DTO
-            //var analysisResult = JsonSerializer.Deserialize<AiAnalysisResultDto>(aiResultJson, new JsonSerializerOptions
-            //{
-            //    PropertyNameCaseInsensitive = true
-            //});
+            // --- НАЧАЛО ИЗМЕНЕНИЙ (ЗАЩИТНЫЙ БЛОК ДЛЯ ИИ) ---
 
-            // 4. Ты: Сохраняешь результаты в БД (используем сущность AnalysisResult)
+            // Создаем пустой объект на случай, если ИИ упадет
+            AiAnalysisResultDto analysisResult = new AiAnalysisResultDto
+            {
+                Sentiment = new SentimentStats { PositivePercent = 0, NeutralPercent = 0, NegativePercent = 0 },
+                TopTopics = new List<Topic>(),
+                Conclusions = new List<Conclusion>()
+            };
+
+            try
+            {
+                // Пытаемся получить ответ от ИИ
+                analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, "groq");
+            }
+            catch (Exception ex)
+            {
+                // Если ИИ выдал ошибку (например, из-за настроек провайдера), 
+                // мы просто запишем это в лог, но НЕ дадим сайту упасть!
+                Console.WriteLine($"Предупреждение: ИИ-анализ пропущен: {ex.Message}");
+            }
+
+            // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+            // 4. Ты: Сохраняешь результаты в БД (это теперь выполнится ВСЕГДА)
             var analysisRecord = new AnalysisResult
-            {// Убедись, что здесь указано непустое значение!
-             // Убедись, что здесь указано непустое значение!
+            {
                 SessionName = !string.IsNullOrEmpty(parsedData.ProgramName) ? parsedData.ProgramName : "Анализ анкет КУ СПб",
+                ProgramName = parsedData.ProgramName,
+                ListenerCount = parsedData.ListenerCount,
                 CreatedAt = System.DateTime.UtcNow,
                 UsefulnessAvg = avgUtility,
                 PracticalityAvg = avgPractice,
 
-                // ИСПРАВЛЕНИЕ 2: Используем правильные имена свойств из твоего DTO (TopTopics и Conclusions)
+                // --- НОВЫЕ СТРОЧКИ ДЛЯ КРУГОВОЙ ДИАГРАММЫ ---
+                Dist1to3 = parsedData.Dist1to3,
+                Dist4to7 = parsedData.Dist4to7,
+                Dist8to10 = parsedData.Dist8to10,
+                // --------------------------------------------
+
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),
                 RecommendationsJson = JsonSerializer.Serialize(analysisResult.Conclusions),
-
-                // Если в твоей модели AnalysisResult есть отдельное поле для единого JSON (AiInsightsJson):
                 AiInsightsJson = JsonSerializer.Serialize(analysisResult)
             };
 
-            // Сохраняем через репозиторий (уточни точное название метода добавления у напарницы, например AddAsync)
+            // Сохраняем через репозиторий
             await _repository.AddAsync(analysisRecord);
 
-            // 5. Напарница: Генерация Word (вызов ее сервиса)
-            // _reportService.GenerateWordDoc(...);
-
-            // 6. Редирект на дашборд с отрисовкой твоих графиков
+            // 6. Редирект на дашборд с отрисовкой твоего графика
             return RedirectToAction("Details", "Dashboard", new { id = analysisRecord.Id });
         }
     }
