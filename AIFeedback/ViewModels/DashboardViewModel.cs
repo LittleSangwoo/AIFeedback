@@ -1,4 +1,6 @@
 ﻿using AIFeedback.Models.DTOs;
+using System;
+using System.Collections.Generic;
 
 namespace AIFeedback.ViewModels
 {
@@ -33,5 +35,11 @@ namespace AIFeedback.ViewModels
         public int Dist1to3 { get; set; }
         public int Dist4to7 { get; set; }
         public int Dist8to10 { get; set; }
+
+        // =====================================
+        // НОВЫЕ СВОЙСТВА ДЛЯ ГРАФИКА ТРЕНДА
+        // =====================================
+        public List<double> TrendValues { get; set; } = new List<double>();
+        public List<string> TrendLabels { get; set; } = new List<string>();
     }
 }

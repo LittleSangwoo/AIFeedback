@@ -52,5 +52,8 @@ namespace AIFeedback.Data
         public double AvgEngagement { get; set; }
         public string AiInsightsJson { get; set; } // Для хранения JSON-ответа от LLM
         public long ProcessingTimeMs { get; set; } // В миллисекундах
+
+        public string? TrendLabelsJson { get; set; }
+        public string? TrendValuesJson { get; set; }
     }
 }

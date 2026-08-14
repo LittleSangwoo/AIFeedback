@@ -27,18 +27,39 @@
     .glass-card:hover {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 30px rgba(124, 77, 255, 0.3);
     }
+    
+    /* === ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ИНПУТА ФАЙЛА === */
     .custom-file-input {
-        background-color: #1a1a24;
-        border: 2px dashed #4527a0;
-        color: #fff;
+        background-color: #1a1a24 !important;
+        border: 2px dashed #4527a0 !important;
+        color: #ffffff !important; /* Принудительно делаем текст имени файла белым */
         border-radius: 12px;
         transition: all 0.3s ease;
     }
     .custom-file-input:focus, .custom-file-input:hover {
-        border-color: #b388ff;
-        background-color: #232332;
-        box-shadow: none;
+        border-color: #b388ff !important;
+        background-color: #232332 !important;
+        box-shadow: none !important;
+        color: #ffffff !important;
     }
+    
+    /* Стилизуем саму кнопку "Обзор..." под темную тему */
+    .custom-file-input::file-selector-button {
+        background-color: #4527a0;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 0.375rem 1rem;
+        margin-right: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+    }
+    .custom-file-input::file-selector-button:hover {
+        background-color: #651fff;
+    }
+    /* =========================================== */
+
     .btn-neon {
         background: linear-gradient(45deg, #651fff, #7c4dff);
         border: none;
@@ -67,15 +88,15 @@
         transition: all 0.3s ease;
     }
 
-        .custom-select-neon:focus {
-            border-color: #b388ff;
-            box-shadow: 0 0 15px rgba(124, 77, 255, 0.3);
-            background-color: #232332;
-            color: #fff;
-        }
+    .custom-select-neon:focus {
+        border-color: #b388ff;
+        box-shadow: 0 0 15px rgba(124, 77, 255, 0.3);
+        background-color: #232332;
+        color: #fff;
+    }
 </style>
 
-<div class="container text-center mt-5 pt-5">
+<div class="container text-center mt-4">
     <h1 class="display-4 hero-title mb-3">Аналитика образовательных программ</h1>
     <p class="lead text-secondary mb-5">Загрузите выгрузку анкет, и ИИ-агент подготовит отчет за несколько секунд.</p>
 
@@ -95,7 +116,7 @@
                         </button>
 
                         <!-- Поле выбора нейросети -->
-                        <div class="mb-4 text-start">
+                        <div class="mb-4 mt-4 text-start">
                             <label for="providerName" class="form-label fw-bold" style="color: #b388ff;">Выберите ИИ-модель</label>
                             <select class="form-select form-select-lg p-3 custom-select-neon" id="providerName" name="providerName" required>
                                 @if (ViewBag.Providers != null && ViewBag.Providers.Count > 0)

@@ -47,7 +47,7 @@ namespace AIFeedback.Services.LLM
 
             // 2. Ищем провайдера: по имени с главной страницы -> активного -> первого попавшегося
             var providerConfig = allProviders.FirstOrDefault(p => p.Name != null && p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase))
-                              
+
                               ?? allProviders.FirstOrDefault();
 
             // 3. Бросаем ошибку только если JSON полностью пустой
@@ -95,7 +95,13 @@ namespace AIFeedback.Services.LLM
             Console.WriteLine($"Sending request to: {providerConfig.BaseUrl}");
 
             var response = await _httpClient.SendAsync(requestMessage);
-            response.EnsureSuccessStatusCode();
+
+            // ИСПРАВЛЕНИЕ: Вместо жесткого падения пробрасываем понятную ошибку в контроллер
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                throw new Exception($"API Error {response.StatusCode}. Проверьте правильность API ключа в llm_providers.json. Текст ответа: {errorText}");
+            }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);
@@ -122,7 +128,13 @@ namespace AIFeedback.Services.LLM
             request.Content = new StringContent("scope=GIGACHAT_API_PERS", Encoding.UTF8, "application/x-www-form-urlencoded");
 
             var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+
+            // ИСПРАВЛЕНИЕ: Мягкий перехват ошибки для GigaChat
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                throw new Exception($"GigaChat Auth Error {response.StatusCode}. Проверьте авторизационные данные. Текст: {errorText}");
+            }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);

@@ -2,10 +2,11 @@
 using AIFeedback.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AIFeedback.Controllers
 {
-
     public class DashboardController : Controller
     {
         private readonly IAnalysisResultRepository _repository;
@@ -56,11 +57,20 @@ namespace AIFeedback.Controllers
                 EngagementYesPercent = result.EngagementYesPercent,
                 OverallSatisfaction = result.OverallSatisfaction,
 
-                // --- НОВЫЕ СТРОЧКИ ДЛЯ КРУГОВОЙ ДИАГРАММЫ ---
+                // Распределение оценок
                 Dist1to3 = result.Dist1to3,
                 Dist4to7 = result.Dist4to7,
                 Dist8to10 = result.Dist8to10,
-                // --------------------------------------------
+
+                // --- РАСПАКОВКА ДАННЫХ ТРЕНДА ИЗ БАЗЫ ДАННЫХ ---
+                TrendLabels = !string.IsNullOrEmpty(result.TrendLabelsJson)
+                    ? JsonSerializer.Deserialize<List<string>>(result.TrendLabelsJson)
+                    : new List<string>(),
+
+                TrendValues = !string.IsNullOrEmpty(result.TrendValuesJson)
+                    ? JsonSerializer.Deserialize<List<double>>(result.TrendValuesJson)
+                    : new List<double>(),
+                // ----------------------------------------------
 
                 AiAnalysis = new Models.DTOs.AiAnalysisResultDto
                 {

@@ -5,18 +5,23 @@ using AIFeedback.Services.Excel;        // Для IExcelParserService
 using AIFeedback.Services.Report;       // Для IReportService
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using System.IO;
+using Microsoft.AspNetCore.Http;
+using System.Text.RegularExpressions;   // Добавлено для метода очистки имен
 
 namespace AIFeedback.Controllers
 {
     public class AnalyzerController : Controller
     {
-        // 1. Объявляем правильные зависимости
         private readonly IExcelParserService _excelParserService;
         private readonly IAiService _aiService;
         private readonly IAnalysisResultRepository _repository;
         private readonly IReportService _reportService;
 
-        // 2. Внедряем зависимости через конструктор (DI)
         public AnalyzerController(
             IExcelParserService excelParserService,
             IAiService aiService,
@@ -30,31 +35,79 @@ namespace AIFeedback.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ProcessFile(IFormFile uploadFile, string providerName)
+        [RequestSizeLimit(104857600)] // Увеличиваем лимит запроса до 100 МБ для мульти-загрузки
+        public async Task<IActionResult> ProcessFile(IFormFile uploadFile, List<IFormFile> historyFiles, bool isTrendEnabled, string providerName)
         {
             if (uploadFile == null || uploadFile.Length == 0)
             {
-                return BadRequest("Файл не выбран");
+                return BadRequest("Основной файл не выбран");
             }
 
-            // 1. Парсинг Excel
+            // ==========================================
+            // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
+            // ==========================================
             var parsedData = await _excelParserService.ParseAsync(uploadFile.OpenReadStream());
 
-            // ИСПРАВЛЕНИЕ 1: Ищем значения по АНГЛИЙСКИМ ключам из парсера
             double avgUtility = parsedData.NumericAverages.GetValueOrDefault("Usefulness", 0);
             double avgPractice = parsedData.NumericAverages.GetValueOrDefault("Practicality", 0);
             double avgAccessibility = parsedData.NumericAverages.GetValueOrDefault("Accessibility", 0);
             double avgInteraction = parsedData.NumericAverages.GetValueOrDefault("Interaction", 0);
-
-            // --- ВЫТАСКИВАЕМ ВОВЛЕЧЕННОСТЬ ---
             double avgEngagement = parsedData.NumericAverages.GetValueOrDefault("Engagement", 0);
 
-            // Считаем общую удовлетворенность (среднее из 4 критериев)
+            // Общая удовлетворенность текущего потока
             double overallSatisfaction = (avgUtility + avgPractice + avgAccessibility + avgInteraction) / 4.0;
 
             string rawComments = string.Join("\n", parsedData.AllComments);
 
-            // 2. Промпты для LLM
+            // ==========================================
+            // 2. ОБРАБОТКА ИСТОРИЧЕСКИХ ФАЙЛОВ (ТРЕНД С ГРУППИРОВКОЙ)
+            // ==========================================
+            var trendLabels = new List<string>();
+            var trendValues = new List<double>();
+
+            if (isTrendEnabled && historyFiles != null && historyFiles.Count > 0)
+            {
+                // Словарь для группировки: Ключ - очищенное имя потока, Значение - список баллов
+                var groupedHistory = new Dictionary<string, List<double>>();
+
+                foreach (var file in historyFiles)
+                {
+                    if (file.Length > 0)
+                    {
+                        using var histStream = file.OpenReadStream();
+                        // Вызываем наш быстрый метод (только цифры)
+                        double histScore = await _excelParserService.ParseHistoryFileAsync(histStream);
+
+                        // Получаем имя без расширения и отрезаем мусорные приписки
+                        string rawName = Path.GetFileNameWithoutExtension(file.FileName);
+                        string baseName = CleanFileName(rawName);
+
+                        // Добавляем балл в группу этого потока
+                        if (!groupedHistory.ContainsKey(baseName))
+                        {
+                            groupedHistory[baseName] = new List<double>();
+                        }
+                        groupedHistory[baseName].Add(histScore);
+                    }
+                }
+
+                // Усредняем баллы для каждой группы и сортируем по имени (чтобы даты шли по порядку)
+                var historyData = groupedHistory
+                    .Select(kvp => (Name: kvp.Key, Score: kvp.Value.Average()))
+                    .OrderBy(x => x.Name)
+                    .ToList();
+
+                trendLabels.AddRange(historyData.Select(x => x.Name));
+                trendValues.AddRange(historyData.Select(x => x.Score));
+            }
+
+            // Добавляем результаты текущего (основного) файла в самый конец тренда
+            trendLabels.Add("Текущий поток");
+            trendValues.Add(Math.Round(overallSatisfaction, 1));
+
+            // ==========================================
+            // 3. ПРОМПТЫ И ВЫЗОВ ИИ
+            // ==========================================
             string systemPrompt = @"You are a data analyst. You MUST output your analysis STRICTLY as a valid JSON object. 
 DO NOT output any markdown (like ```json). DO NOT output any conversational text before or after the JSON.
 Use EXACTLY this JSON structure, filling in the text values in Russian:
@@ -81,42 +134,40 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
 }";
             string userPrompt = $"Балл полезности: {avgUtility}\nОтветы:\n{rawComments}";
 
-            // ИСПРАВЛЕНИЕ 1: Метод УЖЕ возвращает готовый DTO, десериализация в контроллере больше не нужна!
-            AiAnalysisResultDto analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, providerName);
-            //// 3. Ты: Десериализуешь JSON в DTO
-            //var analysisResult = JsonSerializer.Deserialize<AiAnalysisResultDto>(aiResultJson, new JsonSerializerOptions
-            //{
-            //    PropertyNameCaseInsensitive = true
-            //});
+            AiAnalysisResultDto analysisResult = new AiAnalysisResultDto
+            {
+                Sentiment = new SentimentStats { PositivePercent = 0, NeutralPercent = 0, NegativePercent = 0 },
+                TopTopics = new List<Topic>(),
+                Conclusions = new List<Conclusion>()
+            };
 
             try
             {
-                analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, "groq");
+                analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, providerName);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Предупреждение: ИИ-анализ пропущен: {ex.Message}");
+                TempData["AiWarning"] = "Связь с нейросетью временно недоступна (ошибка API-ключа). Дашборд построен только на основе математических расчетов.";
             }
 
-            // 4. ИСПРАВЛЕНИЕ 2: Сохраняем ВСЕ метрики в БД
+            // ==========================================
+            // 4. СОХРАНЕНИЕ В БАЗУ ДАННЫХ
+            // ==========================================
             var analysisRecord = new AnalysisResult
             {
-                SessionName = !string.IsNullOrEmpty(parsedData.ProgramName) ? parsedData.ProgramName : "Анализ анкет КУ СПб",
+                SessionName = !string.IsNullOrEmpty(parsedData.ProgramName) ? parsedData.ProgramName : "Анализ анкет КУ",
                 ProgramName = parsedData.ProgramName,
                 ListenerCount = parsedData.ListenerCount,
-                CreatedAt = System.DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
 
-                // Записываем все 4 критерия и общий балл:
                 UsefulnessAvg = avgUtility,
                 PracticalityAvg = avgPractice,
                 AvailabilityAvg = avgAccessibility,
                 InteractionAvg = avgInteraction,
                 OverallSatisfaction = overallSatisfaction,
-
-                // --- ПЕРЕДАЕМ В БД РЕАЛЬНЫЕ 91% или 97% ВМЕСТО НУЛЯ ---
                 EngagementYesPercent = (int)avgEngagement,
 
-                // Распределение
                 Dist1to3 = parsedData.Dist1to3,
                 Dist4to7 = parsedData.Dist4to7,
                 Dist8to10 = parsedData.Dist8to10,
@@ -124,12 +175,45 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),
                 RecommendationsJson = JsonSerializer.Serialize(analysisResult.Conclusions),
-                AiInsightsJson = JsonSerializer.Serialize(analysisResult)
+                AiInsightsJson = JsonSerializer.Serialize(analysisResult),
+
+                // Сохраняем сериализованные данные тренда
+                TrendLabelsJson = JsonSerializer.Serialize(trendLabels),
+                TrendValuesJson = JsonSerializer.Serialize(trendValues)
             };
 
             await _repository.AddAsync(analysisRecord);
 
             return RedirectToAction("Details", "Dashboard", new { id = analysisRecord.Id });
+        }
+
+        // ==========================================
+        // ВСПОМОГАТЕЛЬНЫЙ МЕТОД: Очистка имен файлов
+        // ==========================================
+        private string CleanFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return "Неизвестная дата";
+
+            // Ищем полный диапазон дат в формате ДД.ММ-ДД.ММ или ДД.ММ.ГГГГ-ДД.ММ.ГГГГ
+            var dateMatch = Regex.Match(fileName, @"\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?\s*[-–—]\s*\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?");
+
+            if (dateMatch.Success)
+            {
+                // Возвращаем найденный диапазон, красиво заменяя разделители на тире с пробелами
+                return dateMatch.Value.Replace("_", ".").Replace("-", " — ").Replace("–", " — ").Replace("—", " — ");
+            }
+
+            // Если диапазона дат нет, пробуем найти хотя бы одну дату
+            var singleDateMatch = Regex.Match(fileName, @"\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?");
+            if (singleDateMatch.Success)
+            {
+                return singleDateMatch.Value.Replace("_", ".");
+            }
+
+            // Если дат вообще нет — чистим от стандартного мусора
+            string pattern = @"(?i)(_v\d+|-копия|\(\d+\)|_доп.*|_часть.*|_финал|\s+копия).*$";
+            string cleanName = Regex.Replace(fileName, pattern, "");
+            return cleanName.Trim(' ', '_', '-');
         }
     }
 }
