@@ -1,31 +1,38 @@
-/*html {
-  font-size: 14px;
+/* ==========================================
+   ГЛОБАЛЬНЫЕ ТЕМЫ (СВЕТЛАЯ И ТЕМНАЯ)
+   ========================================== */
+:root {
+    /* СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) */
+    --bg-color: #f4f6f8;
+    --text-color: #212529;
+    --text-muted: #495057; /* Было слишком светлым, сделал плотнее */
+    --card-bg: #ffffff;
+    --card-border: #dce1e6;
+    --accent-color: #004d99;
+    --accent-hover: #003366;
+    --navbar-bg: #ffffff;
+    --nav-text: #333;
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+[data-theme="dark"] {
+    /* ТЕМНАЯ ТЕМА */
+    --bg-color: #121212;
+    --text-color: #f8f9fa; /* Сделал текст ярче (почти белый) */
+    --text-muted: #adb5bd; /* Сделал подписи светлее, чтобы не тонули в черном */
+    --card-bg: #1e1e1e;
+    --card-border: #333333;
+    --accent-color: #66b2ff;
+    --accent-hover: #99ccff;
+    --navbar-bg: #1a1a1a;
+    --nav-text: #e0e0e0;
+    --input-bg: #2b2b2b; /* Поля ввода теперь чуть светлее фона */
+    --input-border: #444444;
 }
 
 body {
-  margin-bottom: 60px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
 }
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
-}*/

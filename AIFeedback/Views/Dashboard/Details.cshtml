@@ -1,51 +1,69 @@
-﻿@model DashboardViewModel
+﻿@model AIFeedback.ViewModels.DashboardViewModel
 @using System.Globalization
 
 <style>
     /* =======================================================
-           ENTERPRISE CORPORATE THEME (Официальный темный стиль)
+           CSS-ПЕРЕМЕННЫЕ (Светлая официальная тема по умолчанию)
            ======================================================= */
+    :root {
+        --bg-color: #f4f6f8;
+        --text-color: #212529;
+        --text-muted: #6c757d;
+        --card-bg: #ffffff;
+        --card-border: #dce1e6;
+        --accent-color: #004d99;
+        --accent-hover: #003366;
+        --export-btn-bg: transparent;
+    }
+
+    /* Темная тема (активируется по кнопке из _Layout.cshtml) */
+    [data-theme="dark"] {
+        --bg-color: #0d1117;
+        --text-color: #c9d1d9;
+        --text-muted: #8b949e;
+        --card-bg: #161b22;
+        --card-border: #30363d;
+        --accent-color: #58a6ff;
+        --accent-hover: #79c0ff;
+        --export-btn-bg: rgba(88, 166, 255, 0.05);
+    }
+
+    /* Применяем к телу, чтобы переключение было мягким */
     body {
-        background-color: #0d1117 !important;
-        color: #c9d1d9 !important;
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        transition: background-color 0.3s, color 0.3s;
     }
 
     .dashboard-header {
-        border-bottom: 1px solid #30363d;
+        border-bottom: 1px solid var(--card-border);
         padding-bottom: 1.5rem;
         margin-bottom: 2rem;
     }
 
-    .stat-card {
-        background: #161b22;
-        border: 1px solid #30363d;
+    .stat-card, .chart-card, .ai-insights-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
         border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: transform 0.2s, border-color 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.2s, border-color 0.2s, background 0.3s;
     }
 
         .stat-card:hover {
             transform: translateY(-2px);
-            border-color: #58a6ff;
+            border-color: var(--accent-color);
         }
 
-    .chart-card {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
     .text-accent {
-        color: #58a6ff !important;
+        color: var(--accent-color) !important;
     }
 
     /* Кнопки экспорта */
     .btn-export {
-        background-color: transparent;
-        border: 1px solid #30363d;
-        color: #8b949e;
+        background-color: var(--export-btn-bg);
+        border: 1px solid var(--card-border);
+        color: var(--text-muted);
         border-radius: 4px;
         font-weight: 500;
         font-size: 0.9rem;
@@ -53,16 +71,13 @@
     }
 
         .btn-export:hover {
-            border-color: #58a6ff;
-            color: #58a6ff;
-            background-color: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background-color: var(--export-btn-bg);
         }
 
     .ai-insights-card {
-        background: #161b22;
-        border: 1px solid #30363d;
-        border-left: 4px solid #58a6ff;
-        border-radius: 6px;
+        border-left: 4px solid var(--accent-color);
     }
 
     /* Контейнеры для графиков */
@@ -85,10 +100,10 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #8b949e;
+        color: var(--text-muted);
         text-align: center;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px dashed #30363d;
+        background: rgba(128, 128, 128, 0.05);
+        border: 1px dashed var(--card-border);
         border-radius: 4px;
     }
 
@@ -109,33 +124,32 @@
     .heatmap-cell {
         width: 100%;
         height: 50px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(128, 128, 128, 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #111;
+        color: #111; /* Текст на карте всегда темный для контраста */
         font-weight: 700;
         font-size: 0.95rem;
     }
 
-    .heatmap-label {
+    .heatmap-label, .heatmap-label-top {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
         display: flex;
+    }
+
+    .heatmap-label {
         align-items: center;
         justify-content: flex-end;
         padding-right: 15px;
-        color: #8b949e;
-        font-size: 0.85rem;
-        font-weight: 600;
     }
 
     .heatmap-label-top {
-        display: flex;
         align-items: flex-end;
         justify-content: center;
         padding-bottom: 8px;
-        color: #8b949e;
-        font-size: 0.85rem;
-        font-weight: 600;
     }
 
     .heatmap-legend-container {
@@ -151,34 +165,44 @@
         flex-grow: 1;
         background: linear-gradient(to top, #ffeb3b, #ff9800, #f44336);
         margin: 6px 0;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(128, 128, 128, 0.2);
     }
 
     .heatmap-legend-label {
         font-size: 0.75rem;
-        color: #8b949e;
+        color: var(--text-muted);
         font-weight: 600;
     }
 
-    /* Стили для печати */
+    /* =======================================================
+           СТРОГИЙ РЕЖИМ ПЕЧАТИ И ЭКСПОРТА (Всегда белый фон)
+           ======================================================= */
     @@media print {
-        body {
+        body, .stat-card, .chart-card, .ai-insights-card {
             background-color: white !important;
             color: black !important;
-        }
-
-        .btn, .alert, header {
-            display: none !important;
-        }
-
-        .stat-card, .chart-card, .ai-insights-card {
-            background: white !important;
             border: 1px solid #ccc !important;
             box-shadow: none !important;
+            page-break-inside: avoid;
         }
 
-        .text-accent, .text-secondary, .heatmap-label {
+        .btn, .alert, header, nav, .no-print {
+            display: none !important; /* Прячем все кнопки и лишнее */
+        }
+
+        .text-accent, .text-secondary, .heatmap-label, .heatmap-label-top {
             color: black !important;
+        }
+
+        body::before {
+            content: "АНАЛИТИЧЕСКАЯ СПРАВКА";
+            display: block;
+            text-align: center;
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: black;
+            text-transform: uppercase;
         }
     }
 </style>
@@ -187,19 +211,27 @@
 
     @if (TempData["AiWarning"] != null)
     {
-        <div class="alert alert-warning border-0 shadow-sm" role="alert" style="background-color: #3b2e04; color: #d29922;">
+        <div class="alert alert-warning border-0 shadow-sm no-print" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <strong>Внимание!</strong> @TempData["AiWarning"]
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
         </div>
     }
 
     <div class="d-flex justify-content-between align-items-center dashboard-header">
-        <h2 class="fw-bold m-0 text-white">Дашборд программы: <span class="text-accent">@Model.ProgramName</span></h2>
+        <h2 class="fw-bold m-0" style="color: var(--text-color);">Дашборд программы: <span class="text-accent">@Model.ProgramName</span></h2>
 
-        <div class="d-flex gap-2">
-            <button class="btn btn-export px-4" onclick="window.print()"><i class="bi bi-file-pdf me-2"></i>Экспорт PDF</button>
-            <a asp-controller="Report" asp-action="DownloadWord" asp-route-id="@Model.Id" class="btn btn-export px-4"><i class="bi bi-file-word me-2"></i>Экспорт Word</a>
+        <!-- КНОПКИ ЭКСПОРТА -->
+        <div class="d-flex gap-2 no-print">
+            <a href="@Url.Action("DownloadExcel", "Dashboard", new { id = Model.Id })" class="btn btn-export px-3 text-success border-success">
+                <i class="bi bi-file-earmark-excel me-2"></i>Excel (Расчеты)
+            </a>
+            <a asp-controller="Report" asp-action="DownloadWord" asp-route-id="@Model.Id" class="btn btn-export px-3 text-primary border-primary">
+                <i class="bi bi-file-word me-2"></i>Экспорт Word
+            </a>
+            <button class="btn btn-export px-3 text-danger border-danger" onclick="window.print()">
+                <i class="bi bi-file-pdf me-2"></i>Экспорт PDF
+            </button>
         </div>
     </div>
 
@@ -207,19 +239,19 @@
     <div class="row text-center mb-4 g-4">
         <div class="col-md-4">
             <div class="stat-card p-4 h-100">
-                <h6 class="text-secondary text-uppercase mb-2 fw-bold">Общая удовлетворенность</h6>
-                <h1 class="display-5 fw-bold text-accent mb-0">@Model.OverallSatisfaction.ToString("0.0")<span class="fs-5 text-secondary"> / 10</span></h1>
+                <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Общая удовлетворенность</h6>
+                <h1 class="display-5 fw-bold text-accent mb-0">@Model.OverallSatisfaction.ToString("0.0")<span class="fs-5" style="color: var(--text-muted);"> / 10</span></h1>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-card p-4 h-100">
-                <h6 class="text-secondary text-uppercase mb-2 fw-bold">Уровень вовлеченности</h6>
+                <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Уровень вовлеченности</h6>
                 <h1 class="display-5 fw-bold text-success mb-0">@Model.EngagementYesPercent%</h1>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-card p-4 h-100">
-                <h6 class="text-secondary text-uppercase mb-2 fw-bold">Анализ тональности (Позитив)</h6>
+                <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Анализ тональности (Позитив)</h6>
                 <h1 class="display-5 fw-bold text-info mb-0" id="sentimentPos">...</h1>
             </div>
         </div>
@@ -230,7 +262,7 @@
         <!-- 1. Линейчатая (Горизонтальная синяя) -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
-                <h6 class="mb-4 text-secondary text-uppercase fw-bold">Баллы по критериям</h6>
+                <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Баллы по критериям</h6>
                 <div class="chart-wrapper">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -239,7 +271,7 @@
         <!-- 2. Спайдер-график -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
-                <h6 class="mb-4 text-secondary text-uppercase fw-bold text-center">Профиль программы</h6>
+                <h6 class="mb-4 text-uppercase fw-bold text-center" style="color: var(--text-muted);">Профиль программы</h6>
                 <div class="chart-wrapper-radar">
                     <canvas id="radarChart"></canvas>
                 </div>
@@ -248,25 +280,32 @@
     </div>
 
     <div class="row mb-4 g-4">
-        <!-- 3. Распределение (Вертикальная с логичными цветами и наклонными осями) -->
+        <!-- 3. Распределение -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
-                <h6 class="mb-4 text-secondary text-uppercase fw-bold">Распределение оценок</h6>
+                <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Распределение оценок</h6>
                 <div class="chart-wrapper">
                     <canvas id="distributionChart"></canvas>
                 </div>
             </div>
         </div>
+
+        @{
+            // ЛОГИКА ТРЕНДА: Если точек мало, добавляем класс 'no-print', чтобы график вырезался из PDF и Word
+            bool hasTrend = Model.TrendValues != null && Model.TrendValues.Count > 1;
+            string trendPrintClass = hasTrend ? "" : "no-print";
+        }
+
         <!-- 4. Тренд (С прямой линией регрессии и заглушкой) -->
-        <div class="col-md-6">
+        <div class="col-md-6 @trendPrintClass">
             <div class="chart-card p-4 h-100">
-                <h6 class="mb-4 text-secondary text-uppercase fw-bold">Тренд удовлетворенности</h6>
+                <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Тренд удовлетворенности</h6>
                 <div class="chart-wrapper" id="trendChartContainer">
-                    <!-- Если нет данных, покажем этот блок -->
+                    <!-- Заглушка (видна в вебе, если нет данных, но исчезнет при печати благодаря no-print на родителе) -->
                     <div id="trendNoData" class="no-data-placeholder" style="display: none;">
                         <i class="bi bi-clock-history fs-1 mb-2"></i>
                         <h6 class="m-0">Недостаточно данных</h6>
-                        <small>Для построения тренда включите историческую выгрузку.</small>
+                        <small>Для построения тренда загрузите исторические данные.</small>
                     </div>
                     <!-- Канвас графика -->
                     <canvas id="trendChart"></canvas>
@@ -279,7 +318,7 @@
     <div class="row mb-4 g-4">
         <div class="col-12">
             <div class="chart-card p-4">
-                <h6 class="mb-2 text-secondary text-uppercase fw-bold text-center">Тепловая матрица корреляций</h6>
+                <h6 class="mb-2 text-uppercase fw-bold text-center" style="color: var(--text-muted);">Тепловая матрица корреляций</h6>
                 <div id="heatmapContainer" class="pb-3 pt-3">
                     <!-- Генерируется JS -->
                 </div>
@@ -292,7 +331,7 @@
         <div class="col-12">
             <div class="ai-insights-card p-4 p-md-5">
                 <h4 class="text-accent mb-4 fw-bold"><i class="bi bi-robot me-2"></i> Аналитическое заключение (Модуль ИИ)</h4>
-                <div id="aiInsightsContainer" class="text-light"></div>
+                <div id="aiInsightsContainer" style="color: var(--text-color);"></div>
             </div>
         </div>
     </div>
@@ -302,11 +341,12 @@
 
 <script>
     // ==========================================
-    // НАСТРОЙКИ СТИЛЕЙ CHART.JS (Официальный темный)
+    // НАСТРОЙКИ СТИЛЕЙ CHART.JS (Адаптивные для обеих тем)
     // ==========================================
     Chart.defaults.color = '#8b949e';
-    Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
+    Chart.defaults.scale.grid.color = 'rgba(128, 128, 128, 0.15)'; // Универсальный цвет сетки
     Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    const accentColorChart = '#0066cc'; // Используем усредненный синий для графиков
 
     // ==========================================
     // БЕЗОПАСНАЯ СЕРИАЛИЗАЦИЯ ДАННЫХ
@@ -320,8 +360,8 @@
     const labels = ['Полезность', 'Практика', 'Доступность', 'Взаимодействие'];
 
     const aiData = @Html.Raw(Model.AiAnalysis != null
-                ? System.Text.Json.JsonSerializer.Serialize(Model.AiAnalysis, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })
-                : "null");
+                                ? System.Text.Json.JsonSerializer.Serialize(Model.AiAnalysis, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })
+                                : "null");
 
     const distData = [
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dist1to3)),
@@ -329,17 +369,13 @@
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dist8to10))
     ];
 
-    // ==========================================
-    // ОБРАБОТКА ДАННЫХ ТРЕНДА (ИСТОРИЯ)
-    // ==========================================
-    // Проверяем, есть ли у модели список TrendValues. Если нет - берем только текущее значение.
     const trendValues = @Html.Raw(Model.TrendValues != null && Model.TrendValues.Any()
-                                                        ? System.Text.Json.JsonSerializer.Serialize(Model.TrendValues)
-                                                        : $"[{System.Text.Json.JsonSerializer.Serialize(Model.OverallSatisfaction)}]");
+                                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendValues)
+                                : $"[{System.Text.Json.JsonSerializer.Serialize(Model.OverallSatisfaction)}]");
 
     const trendLabels = @Html.Raw(Model.TrendLabels != null && Model.TrendLabels.Any()
-                                                        ? System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels)
-                                                        : "['Текущий поток']");
+                                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels)
+                                : "['Текущий поток']");
 
     // ==========================================
     // СЕНТИМЕНТ И ВЫВОДЫ ИИ
@@ -352,24 +388,24 @@
     if (insightsList && insightsList.length > 0) {
         const insightsHtml = insightsList.map(r => {
             const isHigh = (r.priority || '').toLowerCase() === 'high';
-            const badgeColor = isHigh ? '#f85149' : '#d29922';
-            return `<div class="mb-4 pb-3" style="border-bottom: 1px solid #30363d;">
-                <strong class="d-block mb-1 text-white" style="font-size: 1.1rem;">
+            const badgeColor = isHigh ? '#d73a49' : '#e3b341';
+            return `<div class="mb-4 pb-3" style="border-bottom: 1px solid rgba(128,128,128,0.2);">
+                <strong class="d-block mb-1" style="font-size: 1.1rem; color: var(--text-color);">
                     <span style="color: ${badgeColor}; margin-right: 8px;">●</span>
                     ${r.action || r.text || 'Рекомендация'}
                 </strong>
-                <span class="text-secondary" style="font-size: 0.95rem;">
+                <span style="font-size: 0.95rem; color: var(--text-muted);">
                     Обоснование: ${r.dataProof || r.reasoning || 'Основано на анализе текстовой обратной связи.'}
                 </span>
             </div>`;
         }).join('');
         document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
     } else {
-        document.getElementById('aiInsightsContainer').innerHTML = '<p class="text-secondary m-0">Формирование отчета...</p>';
+        document.getElementById('aiInsightsContainer').innerHTML = '<p class="m-0" style="color: var(--text-muted);">Формирование отчета...</p>';
     }
 
     // ==========================================
-    // 1. ГОРИЗОНТАЛЬНАЯ ЛИНЕЙЧАТАЯ ДИАГРАММА (Синяя)
+    // 1. ГОРИЗОНТАЛЬНАЯ ЛИНЕЙЧАТАЯ
     // ==========================================
     new Chart(document.getElementById('barChart').getContext('2d'), {
         type: 'bar',
@@ -378,7 +414,7 @@
             datasets: [{
                 label: 'Средний балл',
                 data: averages,
-                backgroundColor: '#58a6ff',
+                backgroundColor: accentColorChart,
                 barThickness: 25
             }]
         },
@@ -387,7 +423,7 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { beginAtZero: true, max: 10, grid: { color: '#30363d' } },
+                x: { beginAtZero: true, max: 10 },
                 y: { grid: { display: false } }
             },
             plugins: { legend: { display: false } }
@@ -395,7 +431,7 @@
     });
 
     // ==========================================
-    // 2. СПАЙДЕР-ГРАФИК (Прозрачный, с точками)
+    // 2. СПАЙДЕР-ГРАФИК
     // ==========================================
     new Chart(document.getElementById('radarChart').getContext('2d'), {
         type: 'radar',
@@ -404,11 +440,11 @@
             datasets: [{
                 label: 'Профиль',
                 data: averages,
-                backgroundColor: 'transparent',
-                borderColor: '#58a6ff',
-                pointBackgroundColor: '#161b22',
-                pointBorderColor: '#58a6ff',
-                pointBorderWidth: 2,
+                backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                borderColor: accentColorChart,
+                pointBackgroundColor: accentColorChart,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1,
                 borderWidth: 2,
                 pointRadius: 4
             }]
@@ -418,12 +454,9 @@
             maintainAspectRatio: false,
             scales: {
                 r: {
-                    min: 0,
-                    max: 10,
-                    ticks: { stepSize: 2, display: true, color: '#8b949e', backdropColor: 'transparent' },
-                    grid: { color: '#30363d' },
-                    angleLines: { color: '#30363d' },
-                    pointLabels: { font: { size: 12, weight: '600' }, color: '#c9d1d9' }
+                    min: 0, max: 10,
+                    ticks: { stepSize: 2, display: true, backdropColor: 'transparent' },
+                    pointLabels: { font: { size: 12, weight: '600' } }
                 }
             },
             plugins: { legend: { display: false } }
@@ -431,7 +464,7 @@
     });
 
     // ==========================================
-    // 3. СТОЛБЧАТАЯ ДИАГРАММА (Логичные цвета оценок, наклон осей)
+    // 3. РАСПРЕДЕЛЕНИЕ
     // ==========================================
     new Chart(document.getElementById('distributionChart').getContext('2d'), {
         type: 'bar',
@@ -440,7 +473,6 @@
             datasets: [{
                 label: 'Кол-во слушателей',
                 data: distData,
-                // ТЕПЕРЬ ЦВЕТА ЛОГИЧНЫЕ: Красный (низкие), Желтый (средние), Зеленый (высокие)
                 backgroundColor: ['#d73a49', '#e3b341', '#28a745'],
                 barPercentage: 0.4
             }]
@@ -449,28 +481,20 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { color: '#30363d' } },
+                y: { beginAtZero: true },
                 x: {
                     grid: { display: false },
-                    ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        color: '#8b949e'
-                    }
+                    ticks: { maxRotation: 45, minRotation: 45 }
                 }
             },
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'right',
-                    labels: { color: '#c9d1d9' }
-                }
+                legend: { display: true, position: 'right' }
             }
         }
     });
 
     // ==========================================
-    // 4. ТРЕНД (Синяя линия + Прямая регрессии)
+    // 4. ТРЕНД
     // ==========================================
     const trendCanvas = document.getElementById('trendChart');
     const trendNoData = document.getElementById('trendNoData');
@@ -483,10 +507,8 @@
             const n = yData.length;
             let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
             for (let i = 0; i < n; i++) {
-                sumX += i;
-                sumY += yData[i];
-                sumXY += i * yData[i];
-                sumXX += i * i;
+                sumX += i; sumY += yData[i];
+                sumXY += i * yData[i]; sumXX += i * i;
             }
             const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
             const intercept = (sumY - slope * sumX) / n;
@@ -503,19 +525,19 @@
                     {
                         label: 'Удовлетворенность',
                         data: trendValues,
-                        borderColor: '#58a6ff',
+                        borderColor: accentColorChart,
                         backgroundColor: 'transparent',
                         borderWidth: 2,
                         pointStyle: 'rectRot',
-                        pointRadius: 6,
-                        pointBackgroundColor: '#58a6ff',
+                        pointRadius: 5,
+                        pointBackgroundColor: accentColorChart,
                         tension: 0
                     },
                     {
                         label: 'Линия тренда',
                         data: trendlineData,
-                        borderColor: '#c9d1d9',
-                        borderWidth: 1,
+                        borderColor: 'rgba(128,128,128,0.5)',
+                        borderWidth: 2,
                         pointRadius: 0,
                         borderDash: [5, 5],
                         tension: 0
@@ -525,17 +547,14 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: { min: 0, max: 10, grid: { color: '#30363d' } },
-                    x: { grid: { color: '#30363d' } }
-                },
+                scales: { y: { min: 0, max: 10 } },
                 plugins: { legend: { display: false } }
             }
         });
     }
 
     // ==========================================
-    // 6. ТЕПЛОВАЯ КАРТА (Строгий градиент от желтого к красному с цифрами)
+    // 6. ТЕПЛОВАЯ КАРТА
     // ==========================================
     function renderHeatmap() {
         const corrMatrix = [
@@ -546,32 +565,25 @@
         ];
 
         let html = '<div class="heatmap-wrapper"><div class="heatmap-grid">';
-
         html += '<div></div>' + labels.map(l => `<div class="heatmap-label-top">${l.substring(0, 5)}.</div>`).join('');
 
         for (let i = 0; i < 4; i++) {
             html += `<div class="heatmap-label">${labels[i]}</div>`;
             for (let j = 0; j < 4; j++) {
                 const val = corrMatrix[i][j];
-
                 const hue = Math.floor(60 * (1 - val));
                 const lightness = Math.floor(55 + (1 - val) * 0);
                 const bgColor = `hsl(${hue}, 90%, 55%)`;
-
                 html += `<div class="heatmap-cell" style="background-color: ${bgColor};">${val.toFixed(1)}</div>`;
             }
         }
         html += '</div>';
+        html += `<div class="heatmap-legend-container">
+                    <div class="heatmap-legend-label">1.0</div>
+                    <div class="heatmap-legend-bar"></div>
+                    <div class="heatmap-legend-label">0.0</div>
+                 </div></div>`;
 
-        html += `
-            <div class="heatmap-legend-container">
-                <div class="heatmap-legend-label">1.0</div>
-                <div class="heatmap-legend-bar"></div>
-                <div class="heatmap-legend-label">0.0</div>
-            </div>
-        `;
-
-        html += '</div>';
         document.getElementById('heatmapContainer').innerHTML = html;
     }
 

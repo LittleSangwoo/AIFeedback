@@ -1,6 +1,11 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
+    <script>
+        // Загружаем тему ДО рендеринга страницы, чтобы не было "моргания"
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] – AIFeedback</title>
@@ -13,10 +18,8 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
-        /* Глобальные стили для всего приложения (Тёмная тема) */
+        /* Глобальные стили теперь берутся из site.css (переменные) */
         body {
-            background-color: #0f0f13 !important;
-            color: #e0e0e0;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
@@ -26,14 +29,14 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 10px 32px; /* Сделали её шире */
+            padding: 8px 24px;
             background: rgba(124, 77, 255, 0.08);
             border: 1px solid rgba(179, 136, 255, 0.25);
-            color: #b388ff;
-            border-radius: 12px;
+            color: var(--accent-color, #004d99); /* Используем переменную */
+            border-radius: 8px;
             font-size: 0.85rem;
             font-weight: 600;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
             text-decoration: none;
             backdrop-filter: blur(8px);
@@ -42,8 +45,8 @@
 
         .btn-header-back:hover {
             background: rgba(124, 77, 255, 0.2);
-            border-color: #b388ff;
-            color: #ffffff;
+            border-color: var(--accent-color, #004d99);
+            color: var(--text-color);
             transform: translateY(-1px);
         }
 
@@ -54,40 +57,52 @@
         }
         
         .navbar-scrolled {
-            background-color: rgba(15, 15, 19, 0.85) !important;
+            background-color: var(--navbar-bg) !important; /* Переменная из site.css */
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(124, 77, 255, 0.2);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid var(--card-border);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             padding: 10px 0 !important;
+        }
+        
+        /* Кнопка темы */
+        #themeToggle {
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark sticky-top navbar-custom py-3" style="z-index: 1050;">
-        <!-- justify-content-between разнесет логотип влево, а кнопку вправо -->
+    <nav id="mainNavbar" class="navbar navbar-expand-lg sticky-top navbar-custom py-3" style="z-index: 1050;">
         <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
             
             <!-- Логотип слева -->
-            <a class="navbar-brand fw-bold fs-4 m-0" asp-controller="Home" asp-action="Index" style="color: #b388ff; letter-spacing: 1px;">
+            <a class="navbar-brand fw-bold fs-4 m-0" asp-controller="Home" asp-action="Index" style="color: var(--accent-color); letter-spacing: 1px;">
                 <i class="bi bi-robot me-2"></i>AIFeedback
             </a>
 
-            <!-- Кнопка Назад справа -->
-            @{
-                var controller = ViewContext.RouteData.Values["controller"]?.ToString();
-                var action = ViewContext.RouteData.Values["action"]?.ToString();
-                
-                bool isHomePage = (string.IsNullOrEmpty(controller) || string.Equals(controller, "Home", StringComparison.OrdinalIgnoreCase)) 
-                                  && (string.IsNullOrEmpty(action) || string.Equals(action, "Index", StringComparison.OrdinalIgnoreCase));
-            }
+            <!-- Правый блок: Кнопка Темы + Кнопка Назад -->
+            <div class="d-flex align-items-center gap-3">
+                <button id="themeToggle" class="btn btn-outline-secondary btn-sm no-print">
+                    🌙 Темная тема
+                </button>
 
-            @if (!isHomePage)
-            {
-                <a href="javascript:history.back()" class="btn-header-back">
-                    <i class="bi bi-chevron-left"></i> Назад
-                </a>
-            }
+                @{
+                    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+                    var action = ViewContext.RouteData.Values["action"]?.ToString();
+                    
+                    bool isHomePage = (string.IsNullOrEmpty(controller) || string.Equals(controller, "Home", StringComparison.OrdinalIgnoreCase)) 
+                                      && (string.IsNullOrEmpty(action) || string.Equals(action, "Index", StringComparison.OrdinalIgnoreCase));
+                }
+                
+                @if (!isHomePage)
+                {
+                    <a href="javascript:history.back()" class="btn-header-back no-print">
+                        <i class="bi bi-chevron-left"></i> Назад
+                    </a>
+                }
+            </div>
 
         </div>
     </nav>
@@ -108,6 +123,37 @@
                     navbar.classList.add("navbar-scrolled");
                 } else {
                     navbar.classList.remove("navbar-scrolled");
+                }
+            });
+        });
+    </script>
+
+    <!-- Скрипт переключения темы -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const themeBtn = document.getElementById('themeToggle');
+            
+            // Устанавливаем правильный текст при загрузке
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                themeBtn.innerText = '☀️ Светлая тема';
+                themeBtn.classList.replace('btn-outline-secondary', 'btn-outline-light');
+            }
+
+            // Логика по клику
+            themeBtn.addEventListener('click', () => {
+                let currentTheme = document.documentElement.getAttribute('data-theme');
+                let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                
+                // Меняем иконку и стиль кнопки в зависимости от темы
+                if (newTheme === 'light') {
+                    themeBtn.innerText = '🌙 Темная тема';
+                    themeBtn.classList.replace('btn-outline-light', 'btn-outline-secondary');
+                } else {
+                    themeBtn.innerText = '☀️ Светлая тема';
+                    themeBtn.classList.replace('btn-outline-secondary', 'btn-outline-light');
                 }
             });
         });

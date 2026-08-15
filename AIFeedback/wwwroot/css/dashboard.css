@@ -1,369 +1,56 @@
-﻿/* ========================================
-   ТЕМНАЯ ФИОЛЕТОВАЯ ТЕМА ДЛЯ DASHBOARD
-   ======================================== */
-
-/*:root {
-    --dark-bg: #0a0618;
-    --card-bg: #1a0e2e;
-    --card-border: #3a1f5e;
-    --primary-purple: #7c3aed;
-    --secondary-purple: #a78bfa;
-    --accent-pink: #ec4899;
-    --text-primary: #f0eaff;
-    --text-secondary: #b8a5d6;
-    --gradient-main: linear-gradient(135deg, #1a0e2e 0%, #2d1b4e 50%, #3d1f6e 100%);
-    --gradient-card: linear-gradient(145deg, rgba(26, 14, 46, 0.95), rgba(45, 27, 78, 0.9));
-    --shadow-card: 0 8px 32px rgba(124, 58, 237, 0.25);
-    --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.15);
-    --border-radius: 20px;
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-body.dashboard-page {
-    background: var(--dark-bg);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    min-height: 100vh;
-    background-image: radial-gradient(ellipse at 10% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 60%), radial-gradient(ellipse at 90% 80%, rgba(236, 72, 153, 0.06) 0%, transparent 60%);
-}*/
-
-/* ---------- ОБЩИЕ КАРТОЧКИ ---------- */
-/*.glass-card {
-    background: var(--gradient-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+﻿.card {
+    background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-card);
-    padding: 1.5rem 1.8rem;
-    transition: var(--transition);
-    height: 100%;
-    position: relative;
-    overflow: hidden;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: background 0.3s, border 0.3s;
 }
 
-    .glass-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-glow);
-        border-color: var(--primary-purple);
-    }
-
-    .glass-card .card-title {
-        font-size: 0.85rem;
+    .card h3, .card-title {
+        color: var(--accent-color);
+        font-size: 1.15rem;
+        font-weight: 600;
+        border-bottom: 2px solid var(--card-border);
+        padding-bottom: 12px;
+        margin-bottom: 20px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-secondary);
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
     }
 
-        .glass-card .card-title i {
-            color: var(--secondary-purple);
-            font-size: 1.1rem;
-        }
-
-    .glass-card .card-value {
-        font-size: 2.4rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, var(--text-primary) 0%, var(--secondary-purple) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1.2;
-    }
-
-    .glass-card .card-sub {
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-        margin-top: 0.3rem;
-    }*/
-
-/* ---------- КАРТОЧКИ МЕТРИК (4 штуки) ---------- */
-/*.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.metric-card .card-value {
+.metric-value {
     font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent-color);
 }
 
-.metric-card .card-sub {
-    font-size: 0.8rem;
-}*/
-
-/* ---------- ГРАФИКИ ---------- */
-/*.chart-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.chart-card {
-    padding: 1.2rem 1.5rem;
-}
-
-    .chart-card .chart-wrapper {
-        position: relative;
-        height: 260px;
-        width: 100%;
+/* ==========================================
+   ИДЕАЛЬНЫЙ ЭКСПОРТ В PDF И WORD (ВСЕГДА СВЕТЛЫЙ)
+   ========================================== */
+@media print {
+    body, .card {
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
 
-    .chart-card.full-width {
-        grid-column: 1 / -1;
+    .navbar, .sidebar, .btn, button, footer, .no-print {
+        display: none !important;
     }
 
-    .chart-card .chart-wrapper.tall {
-        height: 320px;
-    }*/
-
-/* ---------- РЕКОМЕНДАЦИИ (ИИ) ---------- */
-/*.ai-insights {
-    background: var(--gradient-card);
-    border: 1px solid var(--card-border);
-    border-radius: var(--border-radius);
-    padding: 1.8rem 2rem;
-    box-shadow: var(--shadow-card);
-    margin-top: 1.5rem;
-    transition: var(--transition);
-}
-
-    .ai-insights:hover {
-        border-color: var(--primary-purple);
-        box-shadow: var(--shadow-glow);
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+        margin-bottom: 30px !important;
+        page-break-inside: avoid;
     }
 
-    .ai-insights .section-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: 1.2rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--text-primary);
-    }
-
-        .ai-insights .section-title i {
-            color: var(--secondary-purple);
-            font-size: 1.4rem;
-        }
-
-.recommendation-item {
-    background: rgba(124, 58, 237, 0.08);
-    border-left: 4px solid var(--primary-purple);
-    padding: 1rem 1.2rem;
-    border-radius: 12px;
-    margin-bottom: 0.75rem;
-    transition: var(--transition);
-}
-
-    .recommendation-item:hover {
-        background: rgba(124, 58, 237, 0.15);
-        transform: translateX(4px);
-    }
-
-    .recommendation-item .badge-priority {
-        display: inline-block;
-        padding: 0.2rem 0.7rem;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-right: 0.5rem;
-    }
-
-.badge-priority.high {
-    background: #ef4444;
-    color: #fff;
-}
-
-.badge-priority.medium {
-    background: #f59e0b;
-    color: #1a1a1a;
-}
-
-.badge-priority.low {
-    background: #6b7280;
-    color: #fff;
-}
-
-.recommendation-item .rec-text {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.recommendation-item .rec-proof {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-top: 0.3rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-    .recommendation-item .rec-proof i {
-        font-size: 0.9rem;
-        color: var(--secondary-purple);
-    }*/
-
-/* ---------- КНОПКИ ЭКСПОРТА ---------- */
-/*.export-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin: 1.5rem 0;
-}
-
-.btn-export {
-    background: rgba(124, 58, 237, 0.15);
-    border: 1px solid var(--card-border);
-    color: var(--text-primary);
-    padding: 0.6rem 1.4rem;
-    border-radius: 40px;
-    font-weight: 500;
-    transition: var(--transition);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-    .btn-export:hover {
-        background: var(--primary-purple);
-        border-color: var(--primary-purple);
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
-    }
-
-    .btn-export i {
-        font-size: 1.1rem;
-    }*/
-
-/* ---------- СПИСОК ТЕМ ---------- */
-/*.topics-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.topic-tag {
-    background: rgba(124, 58, 237, 0.2);
-    border: 1px solid rgba(124, 58, 237, 0.3);
-    padding: 0.3rem 1rem;
-    border-radius: 30px;
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    transition: var(--transition);
-}
-
-    .topic-tag:hover {
-        background: rgba(124, 58, 237, 0.35);
-        transform: scale(1.05);
-    }
-
-    .topic-tag .mention-count {
-        background: var(--primary-purple);
-        color: #fff;
-        border-radius: 30px;
-        padding: 0.05rem 0.6rem;
-        margin-left: 0.4rem;
-        font-size: 0.7rem;
-    }*/
-
-/* ---------- АДАПТИВ ---------- */
-/*@media (max-width: 1200px) {
-    .metric-grid {
-        grid-template-columns: repeat(2, 1fr);
+    body::before {
+        content: "АНАЛИТИЧЕСКАЯ СПРАВКА";
+        display: block;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #000000;
     }
 }
-
-@media (max-width: 768px) {
-    .metric-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .chart-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .glass-card {
-        padding: 1.2rem;
-    }
-
-        .glass-card .card-value {
-            font-size: 1.8rem;
-        }
-
-    .chart-card .chart-wrapper {
-        height: 200px;
-    }
-
-    .export-buttons {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .btn-export {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .metric-grid {
-        grid-template-columns: 1fr;
-    }
-}*/
-
-/* ---------- АНИМАЦИИ ---------- */
-/*@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.glass-card, .chart-card, .ai-insights {
-    animation: fadeInUp 0.6s ease forwards;
-}
-
-    .chart-card:nth-child(2) {
-        animation-delay: 0.1s;
-    }
-
-    .chart-card:nth-child(3) {
-        animation-delay: 0.2s;
-    }
-
-    .chart-card:nth-child(4) {
-        animation-delay: 0.3s;
-    }
-
-.ai-insights {
-    animation-delay: 0.4s;
-}*/
-
-/* Стекло-эффект для фона графиков */
-/*.chart-wrapper canvas {
-    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
-}*/
-
-/* Стили для иконок в заголовках */
-/*.icon-purple {
-    color: var(--secondary-purple);
-}*/

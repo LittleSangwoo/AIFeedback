@@ -5,28 +5,33 @@
 }
 
 <style>
-    /* Corporate Dark Theme: Official Enterprise Look */
-    body {
-        background-color: #0b0e14 !important;
-        color: #c9d1d9 !important;
-        font-family: 'Segoe UI', Tahoma, Helvetica, sans-serif;
-    }
-
+    /* =======================================================
+       СТРОГИЙ КОРПОРАТИВНЫЙ СТИЛЬ (Идеальная контрастность)
+       ======================================================= */
+    
     .hero-title {
-        color: #ffffff;
+        color: var(--text-color);
         font-weight: 700;
         letter-spacing: -0.5px;
     }
 
+    /* Новый стиль для подзаголовка (Заметен в обеих темах) */
+    .hero-subtitle {
+        color: var(--text-color);
+        opacity: 0.85; 
+        font-weight: 500;
+    }
+
     .official-card {
-        background: #161b22;
-        border: 1px solid #30363d;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
         border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.3s, border-color 0.3s;
     }
 
     .form-label {
-        color: #8b949e;
+        color: var(--text-color);
         font-weight: 600;
         font-size: 0.85rem;
         text-transform: uppercase;
@@ -34,28 +39,33 @@
         margin-bottom: 8px;
     }
 
-    /* Строгий стиль полей ввода */
-    .form-control-dark {
-        background-color: #0d1117;
-        border: 1px solid #30363d;
-        color: #c9d1d9;
+    /* Подсказки под полями */
+    .form-hint {
+        color: var(--text-color);
+        opacity: 0.65;
+        font-size: 0.85rem;
+        margin-top: 6px;
+    }
+
+    /* Адаптивный стиль полей ввода */
+    .form-control-adaptive {
+        background-color: var(--input-bg) !important;
+        border: 1px solid var(--input-border) !important;
+        color: var(--text-color) !important;
         border-radius: 6px;
         transition: all 0.2s ease;
     }
 
-    .form-control-dark:focus {
-        background-color: #0d1117;
-        border-color: #58a6ff;
-        color: #ffffff;
-        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    .form-control-adaptive:focus {
+        border-color: var(--accent-color) !important;
+        box-shadow: 0 0 0 3px rgba(0, 77, 153, 0.15) !important;
     }
 
-    /* Кнопка "Обзор..." внутри инпута файла */
-    .form-control-dark::file-selector-button {
-        background-color: #21262d;
-        color: #c9d1d9;
+    .form-control-adaptive::file-selector-button {
+        background-color: var(--card-border);
+        color: var(--text-color);
         border: none;
-        border-right: 1px solid #30363d;
+        border-right: 1px solid var(--input-border);
         padding: 0.6rem 1.2rem;
         margin-right: 1rem;
         font-weight: 500;
@@ -63,31 +73,27 @@
         cursor: pointer;
     }
 
-    .form-control-dark::file-selector-button:hover {
-        background-color: #30363d;
+    .form-control-adaptive::file-selector-button:hover {
+        background-color: var(--accent-color);
         color: #ffffff;
     }
 
-    /* Селект (выпадающий список) */
-    .form-select-dark {
-        background-color: #0d1117;
-        border: 1px solid #30363d;
-        color: #c9d1d9;
+    .form-select-adaptive {
+        background-color: var(--input-bg) !important;
+        border: 1px solid var(--input-border) !important;
+        color: var(--text-color) !important;
         border-radius: 6px;
     }
 
-    .form-select-dark:focus {
-        background-color: #0d1117;
-        border-color: #58a6ff;
-        color: #ffffff;
-        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    .form-select-adaptive:focus {
+        border-color: var(--accent-color) !important;
+        box-shadow: 0 0 0 3px rgba(0, 77, 153, 0.15) !important;
     }
 
-    /* Официальная кнопка отправки */
     .btn-official {
-        background-color: #238636;
+        background-color: var(--accent-color);
         color: #ffffff;
-        border: 1px solid rgba(240, 246, 252, 0.1);
+        border: none;
         font-weight: 600;
         border-radius: 6px;
         letter-spacing: 0.5px;
@@ -95,35 +101,44 @@
     }
 
     .btn-official:hover {
-        background-color: #2ea043;
+        background-color: var(--accent-hover);
         color: #ffffff;
         transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    /* Стили для тумблера (Switch) */
-    .form-check-input {
-        background-color: #21262d;
-        border-color: #30363d;
+    /* =======================================================
+       УВЕЛИЧЕННЫЙ И КОНТРАСТНЫЙ ТУМБЛЕР (ПОЛЗУНОК)
+       ======================================================= */
+    .custom-switch-wrapper .form-check-input {
+        background-color: rgba(130, 135, 145, 0.3) !important; /* Заметный серый фон */
+        border: 2px solid rgba(130, 135, 145, 0.5) !important;
+        width: 3.2em !important; /* Сделали шире */
+        height: 1.6em !important; /* Сделали выше */
         cursor: pointer;
-    }
-    .form-check-input:checked {
-        background-color: #58a6ff;
-        border-color: #58a6ff;
-    }
-    .form-check-label {
-        cursor: pointer;
-        color: #c9d1d9;
-        font-weight: 500;
+        margin-top: 0.1em;
     }
 
-    /* Блок мульти-загрузки для тренда */
+    .custom-switch-wrapper .form-check-input:checked {
+        background-color: var(--accent-color) !important;
+        border-color: var(--accent-color) !important;
+    }
+
+    .custom-switch-wrapper .form-check-label {
+        cursor: pointer;
+        color: var(--text-color);
+        font-weight: 600;
+        margin-left: 10px;
+        padding-top: 4px; /* Выравнивание текста по центру большого ползунка */
+    }
+
     .trend-upload-box {
-        background-color: #0d1117;
-        border: 1px dashed #30363d;
+        background-color: var(--bg-color);
+        border: 1px dashed var(--input-border);
         border-radius: 6px;
         padding: 20px;
         margin-top: 15px;
-        display: none; /* Скрыт по умолчанию */
+        display: none; 
         animation: fadeIn 0.3s ease-in-out;
     }
 
@@ -133,13 +148,14 @@
     }
 
     .loader-spinner {
-        color: #58a6ff;
+        color: var(--accent-color);
     }
 </style>
 
 <div class="container text-center mt-5">
     <h1 class="display-5 hero-title mb-3">Аналитика образовательных программ</h1>
-    <p class="text-secondary mb-5 fs-5">Загрузите данные выгрузки. ИИ-агент подготовит структурированный отчет.</p>
+    
+    <p class="mb-5 fs-5 hero-subtitle">Загрузите данные выгрузки. ИИ-агент подготовит структурированный отчет.</p>
 
     <div class="row justify-content-center">
         <div class="col-md-7 col-lg-6">
@@ -151,24 +167,23 @@
                         <!-- 1. ОСНОВНОЙ ФАЙЛ -->
                         <div class="mb-4">
                             <label for="uploadFile" class="form-label">Основной файл выгрузки (Excel)</label>
-                            <input class="form-control form-control-lg form-control-dark" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
-                            <div class="form-text text-secondary mt-2">Файл с результатами текущего потока программы.</div>
+                            <input class="form-control form-control-lg form-control-adaptive" type="file" id="uploadFile" name="uploadFile" accept=".xlsx, .xls, .csv" required>
+                            <div class="form-hint">Файл с результатами текущего потока программы.</div>
                         </div>
                         
                         <!-- 2. ПОЛЗУНОК ДЛЯ ГРАФИКА ТРЕНДА -->
-                        <div class="mb-4">
-                            <div class="form-check form-switch fs-6">
-                                <input class="form-check-input" type="checkbox" id="enableTrendToggle" name="isTrendEnabled" value="true" onchange="toggleTrendBox()">
+                        <div class="mb-4 custom-switch-wrapper">
+                            <div class="form-check form-switch fs-6 d-flex align-items-center">
+                                <input class="form-check-input flex-shrink-0" type="checkbox" id="enableTrendToggle" name="isTrendEnabled" value="true" onchange="toggleTrendBox()">
                                 <label class="form-check-label" for="enableTrendToggle">Рассчитать тренд удовлетворенности</label>
                             </div>
                         </div>
 
-                        <!-- 3. ИСТОРИЧЕСКИЕ ФАЙЛЫ (Скрыто по умолчанию) -->
+                        <!-- 3. ИСТОРИЧЕСКИЕ ФАЙЛЫ -->
                         <div class="mb-4 trend-upload-box" id="trendFilesContainer">
-                            <label for="historyFiles" class="form-label text-info">Исторические данные (для тренда)</label>
-                            <!-- Обрати внимание на атрибут multiple - он позволяет выбрать сразу несколько файлов -->
-                            <input class="form-control form-control-dark" type="file" id="historyFiles" name="historyFiles" multiple accept=".xlsx, .xls, .csv">
-                            <div class="form-text text-secondary mt-2">
+                            <label for="historyFiles" class="form-label" style="color: var(--accent-color);">Исторические данные (для тренда)</label>
+                            <input class="form-control form-control-adaptive" type="file" id="historyFiles" name="historyFiles" multiple accept=".xlsx, .xls, .csv">
+                            <div class="form-hint">
                                 Выделите несколько Excel-файлов прошлых потоков. Даты будут определены автоматически.
                             </div>
                         </div>
@@ -176,7 +191,7 @@
                         <!-- 4. ВЫБОР ИИ-МОДЕЛИ -->
                         <div class="mb-5">
                             <label for="providerName" class="form-label">Вычислительная ИИ-модель</label>
-                            <select class="form-select form-select-lg form-select-dark" id="providerName" name="providerName" required>
+                            <select class="form-select form-select-lg form-select-adaptive" id="providerName" name="providerName" required>
                                 @if (ViewBag.Providers != null && ViewBag.Providers.Count > 0)
                                 {
                                     foreach (var provider in ViewBag.Providers)
@@ -207,13 +222,12 @@
     <!-- ЛОАДЕР (Появляется при отправке) -->
     <div id="loader" class="mt-5" style="display:none;">
         <div class="spinner-border loader-spinner mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-        <h5 class="text-white">ИИ-агент обрабатывает данные...</h5>
-        <p class="text-secondary">Это может занять от 5 до 15 секунд в зависимости от объема файлов.</p>
+        <h5 class="hero-subtitle">ИИ-агент обрабатывает данные...</h5>
+        <p class="form-hint">Это может занять от 5 до 15 секунд в зависимости от объема файлов.</p>
     </div>
 </div>
 
 <script>
-    // Функция для показа/скрытия блока с дополнительными файлами
     function toggleTrendBox() {
         const toggle = document.getElementById('enableTrendToggle');
         const trendBox = document.getElementById('trendFilesContainer');
@@ -223,24 +237,17 @@
             trendBox.style.display = 'block';
         } else {
             trendBox.style.display = 'none';
-            // Очищаем выбранные файлы, если пользователь передумал
             historyInput.value = ''; 
         }
     }
 
-    // Валидация и запуск лоадера
     function validateAndSubmit() {
         const mainFileInput = document.getElementById('uploadFile');
-        
-        // Если основной файл не выбран, браузер сам покажет стандартную ошибку (required)
         if (!mainFileInput.value) {
             return true; 
         }
-
-        // Прячем форму, показываем красивую загрузку
         document.querySelector('.official-card').style.display = 'none';
         document.getElementById('loader').style.display = 'block';
-        
         return true;
     }
 </script>
