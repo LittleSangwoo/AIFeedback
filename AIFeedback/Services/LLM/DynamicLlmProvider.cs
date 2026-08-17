@@ -96,6 +96,8 @@ namespace AIFeedback.Services.LLM
 
             var response = await _httpClient.SendAsync(requestMessage);
 
+
+
             // ИСПРАВЛЕНИЕ: Вместо жесткого падения пробрасываем понятную ошибку в контроллер
             if (!response.IsSuccessStatusCode)
             {

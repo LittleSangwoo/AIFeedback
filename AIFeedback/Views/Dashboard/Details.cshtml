@@ -380,28 +380,31 @@
     // ==========================================
     // СЕНТИМЕНТ И ВЫВОДЫ ИИ
     // ==========================================
-    if (aiData && aiData.sentiment && aiData.sentiment.positivePercent) {
-        document.getElementById('sentimentPos').innerText = aiData.sentiment.positivePercent + '%';
+    // Используем заглавную S и P
+    if (aiData && aiData.Sentiment && aiData.Sentiment.PositivePercent) {
+    document.getElementById('sentimentPos').innerText = aiData.Sentiment.PositivePercent + '%';
     }
 
-    const insightsList = aiData?.conclusions || aiData?.recommendations || [];
+    // Используем заглавную C
+    const insightsList = aiData?.Conclusions || [];
     if (insightsList && insightsList.length > 0) {
-        const insightsHtml = insightsList.map(r => {
-            const isHigh = (r.priority || '').toLowerCase() === 'high';
-            const badgeColor = isHigh ? '#d73a49' : '#e3b341';
-            return `<div class="mb-4 pb-3" style="border-bottom: 1px solid rgba(128,128,128,0.2);">
-                <strong class="d-block mb-1" style="font-size: 1.1rem; color: var(--text-color);">
-                    <span style="color: ${badgeColor}; margin-right: 8px;">●</span>
-                    ${r.action || r.text || 'Рекомендация'}
-                </strong>
-                <span style="font-size: 0.95rem; color: var(--text-muted);">
-                    Обоснование: ${r.dataProof || r.reasoning || 'Основано на анализе текстовой обратной связи.'}
-                </span>
-            </div>`;
-        }).join('');
-        document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
+    const insightsHtml = insightsList.map(r => {
+    // Заглавная P
+    const isHigh = (r.Priority || '').toLowerCase() === 'high';
+    const badgeColor = isHigh ? '#d73a49' : '#e3b341';
+    return `<div class="mb-4 pb-3" style="border-bottom: 1px solid rgba(128,128,128,0.2);">
+    <strong class="d-block mb-1" style="font-size: 1.1rem; color: var(--text-color);">
+    <span style="color: ${badgeColor}; margin-right: 8px;">●</span>
+    ${r.Action || 'Рекомендация'} <!-- Заглавная A -->
+    </strong>
+    <span style="font-size: 0.95rem; color: var(--text-muted);">
+    Обоснование: ${r.DataProof || 'Основано на анализе текстовой обратной связи.'} <!-- Заглавная D и P -->
+    </span>
+    </div>`;
+    }).join('');
+    document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
     } else {
-        document.getElementById('aiInsightsContainer').innerHTML = '<p class="m-0" style="color: var(--text-muted);">Формирование отчета...</p>';
+    document.getElementById('aiInsightsContainer').innerHTML = '<p class="m-0" style="color: var(--text-muted);">Формирование отчета...</p>';
     }
 
     // ==========================================
