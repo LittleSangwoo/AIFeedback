@@ -4,7 +4,7 @@
         "Name": "groq",
         "IsLocal": false,
         "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
-        "Model": "llama-3.3-70b-versatile",
+        "Model": "openai/gpt-oss-120b",
         "ApiKey": "-",
         "Scope": null
     },
