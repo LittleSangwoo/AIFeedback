@@ -3,8 +3,8 @@
 
 <style>
     /* =======================================================
-           CSS-ПЕРЕМЕННЫЕ (Светлая официальная тема по умолчанию)
-           ======================================================= */
+       CSS-ПЕРЕМЕННЫЕ (Светлая официальная тема по умолчанию)
+       ======================================================= */
     :root {
         --bg-color: #f4f6f8;
         --text-color: #212529;
@@ -28,7 +28,6 @@
         --export-btn-bg: rgba(88, 166, 255, 0.05);
     }
 
-    /* Применяем к телу, чтобы переключение было мягким */
     body {
         background-color: var(--bg-color) !important;
         color: var(--text-color) !important;
@@ -50,14 +49,12 @@
         transition: transform 0.2s, border-color 0.2s, background 0.3s;
     }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent-color);
-        }
-
-    .text-accent {
-        color: var(--accent-color) !important;
+    .stat-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-color);
     }
+
+    .text-accent { color: var(--accent-color) !important; }
 
     /* Кнопки экспорта */
     .btn-export {
@@ -70,139 +67,69 @@
         transition: all 0.2s;
     }
 
-        .btn-export:hover {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-            background-color: var(--export-btn-bg);
-        }
-
-    .ai-insights-card {
-        border-left: 4px solid var(--accent-color);
+    .btn-export:hover {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+        background-color: var(--export-btn-bg);
     }
 
-    /* Контейнеры для графиков */
-    .chart-wrapper {
-        position: relative;
-        height: 280px;
-        width: 100%;
-    }
+    .ai-insights-card { border-left: 4px solid var(--accent-color); }
 
-    .chart-wrapper-radar {
-        position: relative;
-        height: 380px;
-        width: 100%;
-    }
+    .chart-wrapper { position: relative; height: 280px; width: 100%; }
+    .chart-wrapper-radar { position: relative; height: 380px; width: 100%; }
 
-    /* Заглушка для графика тренда */
     .no-data-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: var(--text-muted);
-        text-align: center;
-        background: rgba(128, 128, 128, 0.05);
-        border: 1px dashed var(--card-border);
-        border-radius: 4px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100%; color: var(--text-muted); text-align: center;
+        background: rgba(128, 128, 128, 0.05); border: 1px dashed var(--card-border); border-radius: 4px;
     }
 
-    /* --- ТЕПЛОВАЯ КАРТА (Строгая) --- */
-    .heatmap-wrapper {
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        gap: 20px;
-    }
-
-    .heatmap-grid {
-        display: grid;
-        grid-template-columns: 140px repeat(4, 90px);
-        gap: 2px;
-    }
-
-    .heatmap-cell {
-        width: 100%;
-        height: 50px;
-        border: 1px solid rgba(128, 128, 128, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #111; /* Текст на карте всегда темный для контраста */
-        font-weight: 700;
-        font-size: 0.95rem;
-    }
-
-    .heatmap-label, .heatmap-label-top {
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-    }
-
-    .heatmap-label {
-        align-items: center;
-        justify-content: flex-end;
-        padding-right: 15px;
-    }
-
-    .heatmap-label-top {
-        align-items: flex-end;
-        justify-content: center;
-        padding-bottom: 8px;
-    }
-
-    .heatmap-legend-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 208px;
-        padding-bottom: 2px;
-    }
-
-    .heatmap-legend-bar {
-        width: 14px;
-        flex-grow: 1;
-        background: linear-gradient(to top, #ffeb3b, #ff9800, #f44336);
-        margin: 6px 0;
-        border: 1px solid rgba(128, 128, 128, 0.2);
-    }
-
-    .heatmap-legend-label {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        font-weight: 600;
+    /* --- МАТРИЦА КОРРЕЛЯЦИЙ --- */
+    .heatmap-wrapper { overflow-x: auto; padding: 10px; }
+    .corr-table { margin: 0 auto; border-collapse: separate; border-spacing: 4px; }
+    .corr-label-top { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-align: center; vertical-align: bottom; padding-bottom: 8px; width: 80px; }
+    .corr-label-left { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-align: right; vertical-align: middle; padding-right: 15px; }
+    .corr-cell {
+        height: 55px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.95rem; border: 1px solid rgba(128,128,128,0.1); cursor: default;
     }
 
     /* =======================================================
-           СТРОГИЙ РЕЖИМ ПЕЧАТИ И ЭКСПОРТА (Всегда белый фон)
-           ======================================================= */
+       СТРОГИЙ РЕЖИМ ПЕЧАТИ (Профессиональный PDF)
+       ======================================================= */
     @@media print {
-        body, .stat-card, .chart-card, .ai-insights-card {
-            background-color: white !important;
-            color: black !important;
-            border: 1px solid #ccc !important;
-            box-shadow: none !important;
-            page-break-inside: avoid;
+        @@page { size: A4; margin: 1.5cm; }
+        body { background-color: white !important; color: black !important; font-size: 11pt !important; }
+        .btn, .alert, header, nav, .no-print, .dashboard-header { display: none !important; }
+        .stat-card, .chart-card, .ai-insights-card {
+            background-color: white !important; border: none !important; box-shadow: none !important;
+            padding: 10px !important; margin-bottom: 15px !important; page-break-inside: avoid;
         }
+        .stat-card h1.display-5 { font-size: 24pt !important; margin-top: 5px !important; }
+        .stat-card h6 { font-size: 10pt !important; color: #555 !important; margin-bottom: 0 !important; }
 
-        .btn, .alert, header, nav, .no-print {
-            display: none !important; /* Прячем все кнопки и лишнее */
+        .row.text-center.mb-4 {
+            display: flex !important; flex-direction: row !important; justify-content: space-between !important;
+            border-bottom: 1px solid #ddd; padding-bottom: 15px; margin-bottom: 20px !important;
         }
+        .row.text-center.mb-4 .col-md-4 { flex: 0 0 32% !important; max-width: 32% !important; }
+        .row.text-center.mb-4 .col-md-6 { flex: 0 0 48% !important; max-width: 48% !important; }
 
-        .text-accent, .text-secondary, .heatmap-label, .heatmap-label-top {
-            color: black !important;
+        .chart-wrapper { height: 200px !important; }
+        .chart-wrapper-radar { height: 220px !important; }
+
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+        .chart-card h6, .ai-insights-card h4 {
+            color: #333 !important; font-size: 12pt !important; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px !important;
         }
+        .text-accent { color: #004d99 !important; }
+        .text-success { color: #28a745 !important; }
+        .corr-label-top, .corr-label-left { color: black !important; }
 
         body::before {
-            content: "АНАЛИТИЧЕСКАЯ СПРАВКА";
-            display: block;
-            text-align: center;
-            font-size: 20pt;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: black;
-            text-transform: uppercase;
+            content: "АНАЛИТИЧЕСКАЯ СПРАВКА ПО ПРОГРАММЕ"; display: block; text-align: center;
+            font-size: 18pt; font-weight: bold; margin-bottom: 20px; color: black; text-transform: uppercase; border-bottom: 2px solid black; padding-bottom: 10px;
         }
     }
 </style>
@@ -221,8 +148,8 @@
     <div class="d-flex justify-content-between align-items-center dashboard-header">
         <h2 class="fw-bold m-0" style="color: var(--text-color);">Дашборд программы: <span class="text-accent">@Model.ProgramName</span></h2>
 
-        <!-- КНОПКИ ЭКСПОРТА -->
         <div class="d-flex gap-2 no-print">
+            <!-- ЭТА КНОПКА ЗАПУСКАЕТ ВЫГРУЗКУ EXCEL ИЗ КОНТРОЛЛЕРА -->
             <a href="@Url.Action("DownloadExcel", "Dashboard", new { id = Model.Id })" class="btn btn-export px-3 text-success border-success">
                 <i class="bi bi-file-earmark-excel me-2"></i>Excel (Расчеты)
             </a>
@@ -235,21 +162,21 @@
         </div>
     </div>
 
-    <!-- МЕТРИКИ -->
+    <!-- МЕТРИКИ (Добавлен класс metric-col для удобного скрытия) -->
     <div class="row text-center mb-4 g-4">
-        <div class="col-md-4">
+        <div class="col-md-4 metric-col">
             <div class="stat-card p-4 h-100">
                 <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Общая удовлетворенность</h6>
                 <h1 class="display-5 fw-bold text-accent mb-0">@Model.OverallSatisfaction.ToString("0.0")<span class="fs-5" style="color: var(--text-muted);"> / 10</span></h1>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 metric-col">
             <div class="stat-card p-4 h-100">
                 <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Уровень вовлеченности</h6>
                 <h1 class="display-5 fw-bold text-success mb-0">@Model.EngagementYesPercent%</h1>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 metric-col" id="sentimentCardCol">
             <div class="stat-card p-4 h-100">
                 <h6 class="text-uppercase mb-2 fw-bold" style="color: var(--text-muted);">Анализ тональности (Позитив)</h6>
                 <h1 class="display-5 fw-bold text-info mb-0" id="sentimentPos">...</h1>
@@ -259,7 +186,6 @@
 
     <!-- ГРАФИКИ -->
     <div class="row mb-4 g-4">
-        <!-- 1. Линейчатая (Горизонтальная синяя) -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
                 <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Баллы по критериям</h6>
@@ -268,7 +194,6 @@
                 </div>
             </div>
         </div>
-        <!-- 2. Спайдер-график -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
                 <h6 class="mb-4 text-uppercase fw-bold text-center" style="color: var(--text-muted);">Профиль программы</h6>
@@ -280,7 +205,6 @@
     </div>
 
     <div class="row mb-4 g-4">
-        <!-- 3. Распределение -->
         <div class="col-md-6">
             <div class="chart-card p-4 h-100">
                 <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Распределение оценок</h6>
@@ -291,43 +215,37 @@
         </div>
 
         @{
-            // ЛОГИКА ТРЕНДА: Если точек мало, добавляем класс 'no-print', чтобы график вырезался из PDF и Word
             bool hasTrend = Model.TrendValues != null && Model.TrendValues.Count > 1;
             string trendPrintClass = hasTrend ? "" : "no-print";
         }
 
-        <!-- 4. Тренд (С прямой линией регрессии и заглушкой) -->
         <div class="col-md-6 @trendPrintClass">
             <div class="chart-card p-4 h-100">
                 <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Тренд удовлетворенности</h6>
                 <div class="chart-wrapper" id="trendChartContainer">
-                    <!-- Заглушка (видна в вебе, если нет данных, но исчезнет при печати благодаря no-print на родителе) -->
                     <div id="trendNoData" class="no-data-placeholder" style="display: none;">
                         <i class="bi bi-clock-history fs-1 mb-2"></i>
                         <h6 class="m-0">Недостаточно данных</h6>
                         <small>Для построения тренда загрузите исторические данные.</small>
                     </div>
-                    <!-- Канвас графика -->
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ТЕПЛОВАЯ КАРТА -->
+    <!-- МАТРИЦА КОРРЕЛЯЦИЙ -->
     <div class="row mb-4 g-4">
         <div class="col-12">
             <div class="chart-card p-4">
-                <h6 class="mb-2 text-uppercase fw-bold text-center" style="color: var(--text-muted);">Тепловая матрица корреляций</h6>
-                <div id="heatmapContainer" class="pb-3 pt-3">
-                    <!-- Генерируется JS -->
-                </div>
+                <h6 class="mb-2 text-uppercase fw-bold text-center" style="color: var(--text-muted);">Матрица корреляций критериев</h6>
+                <div id="heatmapContainer" class="pb-3 pt-3"></div>
             </div>
         </div>
     </div>
 
     <!-- ЛОГИЧНЫЕ ВЫВОДЫ ИИ -->
-    <div class="row mb-5">
+    <div class="row mb-5" id="aiSection">
         <div class="col-12">
             <div class="ai-insights-card p-4 p-md-5">
                 <h4 class="text-accent mb-4 fw-bold"><i class="bi bi-robot me-2"></i> Аналитическое заключение (Модуль ИИ)</h4>
@@ -340,17 +258,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // ==========================================
-    // НАСТРОЙКИ СТИЛЕЙ CHART.JS (Адаптивные для обеих тем)
-    // ==========================================
     Chart.defaults.color = '#8b949e';
-    Chart.defaults.scale.grid.color = 'rgba(128, 128, 128, 0.15)'; // Универсальный цвет сетки
+    Chart.defaults.scale.grid.color = 'rgba(128, 128, 128, 0.15)'; 
     Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-    const accentColorChart = '#0066cc'; // Используем усредненный синий для графиков
+    const accentColorChart = '#0066cc'; 
 
-    // ==========================================
-    // БЕЗОПАСНАЯ СЕРИАЛИЗАЦИЯ ДАННЫХ
-    // ==========================================
     const averages = [
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.UsefulnessAvg)),
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PracticalityAvg)),
@@ -360,8 +272,8 @@
     const labels = ['Полезность', 'Практика', 'Доступность', 'Взаимодействие'];
 
     const aiData = @Html.Raw(Model.AiAnalysis != null
-                                ? System.Text.Json.JsonSerializer.Serialize(Model.AiAnalysis, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })
-                                : "null");
+                ? System.Text.Json.JsonSerializer.Serialize(Model.AiAnalysis, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })
+                : "null");
 
     const distData = [
         @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dist1to3)),
@@ -370,22 +282,23 @@
     ];
 
     const trendValues = @Html.Raw(Model.TrendValues != null && Model.TrendValues.Any()
-                                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendValues)
-                                : $"[{System.Text.Json.JsonSerializer.Serialize(Model.OverallSatisfaction)}]");
+                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendValues)
+                : $"[{System.Text.Json.JsonSerializer.Serialize(Model.OverallSatisfaction)}]");
 
     const trendLabels = @Html.Raw(Model.TrendLabels != null && Model.TrendLabels.Any()
-                                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels)
-                                : "['Текущий поток']");
+                ? System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels)
+                : "['Текущий поток']");
 
     // ==========================================
-    // СЕНТИМЕНТ И ВЫВОДЫ ИИ
+    // ЛОГИКА УДАЛЕНИЯ БЛОКОВ ПРИ ОТСУТСТВИИ ИИ
     // ==========================================
-    if (aiData && aiData.sentiment && aiData.sentiment.positivePercent) {
+    const sentCol = document.getElementById('sentimentCardCol');
+    const aiSection = document.getElementById('aiSection');
+
+    if (aiData && aiData.sentiment && aiData.sentiment.positivePercent > 0) {
         document.getElementById('sentimentPos').innerText = aiData.sentiment.positivePercent + '%';
-    }
-
-    const insightsList = aiData?.conclusions || aiData?.recommendations || [];
-    if (insightsList && insightsList.length > 0) {
+        
+        const insightsList = aiData?.conclusions || aiData?.recommendations || [];
         const insightsHtml = insightsList.map(r => {
             const isHigh = (r.priority || '').toLowerCase() === 'high';
             const badgeColor = isHigh ? '#d73a49' : '#e3b341';
@@ -401,104 +314,67 @@
         }).join('');
         document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
     } else {
-        document.getElementById('aiInsightsContainer').innerHTML = '<p class="m-0" style="color: var(--text-muted);">Формирование отчета...</p>';
+        // УДАЛЯЕМ КАРТОЧКУ ПОЗИТИВА СОВСЕМ
+        if (sentCol) {
+            sentCol.remove();
+            // Расширяем две оставшиеся
+            document.querySelectorAll('.metric-col').forEach(el => {
+                el.classList.remove('col-md-4');
+                el.classList.add('col-md-6');
+            });
+        }
+        // УДАЛЯЕМ БЛОК ВЫВОДОВ СОВСЕМ
+        if (aiSection) aiSection.remove();
     }
 
     // ==========================================
-    // 1. ГОРИЗОНТАЛЬНАЯ ЛИНЕЙЧАТАЯ
+    // ГРАФИКИ (Остались без изменений)
     // ==========================================
     new Chart(document.getElementById('barChart').getContext('2d'), {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Средний балл',
-                data: averages,
-                backgroundColor: accentColorChart,
-                barThickness: 25
-            }]
+            datasets: [{ label: 'Средний балл', data: averages, backgroundColor: accentColorChart, barThickness: 25 }]
         },
         options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { beginAtZero: true, max: 10 },
-                y: { grid: { display: false } }
-            },
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            scales: { x: { beginAtZero: true, max: 10 }, y: { grid: { display: false } } },
             plugins: { legend: { display: false } }
         }
     });
 
-    // ==========================================
-    // 2. СПАЙДЕР-ГРАФИК
-    // ==========================================
     new Chart(document.getElementById('radarChart').getContext('2d'), {
         type: 'radar',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Профиль',
-                data: averages,
-                backgroundColor: 'rgba(0, 102, 204, 0.1)',
-                borderColor: accentColorChart,
-                pointBackgroundColor: accentColorChart,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1,
-                borderWidth: 2,
-                pointRadius: 4
+                label: 'Профиль', data: averages, backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                borderColor: accentColorChart, pointBackgroundColor: accentColorChart,
+                pointBorderColor: '#fff', pointBorderWidth: 1, borderWidth: 2, pointRadius: 4
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                r: {
-                    min: 0, max: 10,
-                    ticks: { stepSize: 2, display: true, backdropColor: 'transparent' },
-                    pointLabels: { font: { size: 12, weight: '600' } }
-                }
-            },
+            responsive: true, maintainAspectRatio: false,
+            scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, display: true, backdropColor: 'transparent' }, pointLabels: { font: { size: 12, weight: '600' } } } },
             plugins: { legend: { display: false } }
         }
     });
 
-    // ==========================================
-    // 3. РАСПРЕДЕЛЕНИЕ
-    // ==========================================
     new Chart(document.getElementById('distributionChart').getContext('2d'), {
         type: 'bar',
         data: {
             labels: ['1-3 (Низкая)', '4-7 (Средняя)', '8-10 (Высокая)'],
-            datasets: [{
-                label: 'Кол-во слушателей',
-                data: distData,
-                backgroundColor: ['#d73a49', '#e3b341', '#28a745'],
-                barPercentage: 0.4
-            }]
+            datasets: [{ label: 'Кол-во слушателей', data: distData, backgroundColor: ['#d73a49', '#e3b341', '#28a745'], barPercentage: 0.4 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true },
-                x: {
-                    grid: { display: false },
-                    ticks: { maxRotation: 45, minRotation: 45 }
-                }
-            },
-            plugins: {
-                legend: { display: true, position: 'right' }
-            }
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true }, x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } } },
+            plugins: { legend: { display: true, position: 'right' } }
         }
     });
 
-    // ==========================================
-    // 4. ТРЕНД
-    // ==========================================
     const trendCanvas = document.getElementById('trendChart');
     const trendNoData = document.getElementById('trendNoData');
-
     if (trendValues.length < 2) {
         trendCanvas.style.display = 'none';
         trendNoData.style.display = 'flex';
@@ -507,85 +383,54 @@
             const n = yData.length;
             let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
             for (let i = 0; i < n; i++) {
-                sumX += i; sumY += yData[i];
-                sumXY += i * yData[i]; sumXX += i * i;
+                sumX += i; sumY += yData[i]; sumXY += i * yData[i]; sumXX += i * i;
             }
             const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
             const intercept = (sumY - slope * sumX) / n;
             return yData.map((_, i) => slope * i + intercept);
         }
-
         const trendlineData = calculateLinearRegression(trendValues);
-
         new Chart(trendCanvas.getContext('2d'), {
             type: 'line',
             data: {
                 labels: trendLabels,
                 datasets: [
-                    {
-                        label: 'Удовлетворенность',
-                        data: trendValues,
-                        borderColor: accentColorChart,
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        pointStyle: 'rectRot',
-                        pointRadius: 5,
-                        pointBackgroundColor: accentColorChart,
-                        tension: 0
-                    },
-                    {
-                        label: 'Линия тренда',
-                        data: trendlineData,
-                        borderColor: 'rgba(128,128,128,0.5)',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        borderDash: [5, 5],
-                        tension: 0
-                    }
+                    { label: 'Удовлетворенность', data: trendValues, borderColor: accentColorChart, backgroundColor: 'transparent', borderWidth: 2, pointStyle: 'rectRot', pointRadius: 5, pointBackgroundColor: accentColorChart, tension: 0 },
+                    { label: 'Линия тренда', data: trendlineData, borderColor: 'rgba(128,128,128,0.5)', borderWidth: 2, pointRadius: 0, borderDash: [5, 5], tension: 0 }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { min: 0, max: 10 } },
-                plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 10 } }, plugins: { legend: { display: false } } }
         });
     }
 
-    // ==========================================
-    // 6. ТЕПЛОВАЯ КАРТА
-    // ==========================================
-    function renderHeatmap() {
-        const corrMatrix = [
-            [1.0, 0.6, 0.4, 0.8],
-            [0.6, 1.0, 0.5, 0.3],
-            [0.4, 0.5, 1.0, 0.7],
-            [0.8, 0.3, 0.7, 1.0]
-        ];
+    function renderCorrelationMatrix() {
+        const corrMatrix = @Html.Raw(string.IsNullOrEmpty(Model.CorrelationMatrixJson) || Model.CorrelationMatrixJson == "null" 
+            ? "[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]" 
+            : Model.CorrelationMatrixJson);
 
-        let html = '<div class="heatmap-wrapper"><div class="heatmap-grid">';
-        html += '<div></div>' + labels.map(l => `<div class="heatmap-label-top">${l.substring(0, 5)}.</div>`).join('');
+        let html = '<div class="heatmap-wrapper"><table class="corr-table">';
+        html += '<tr><td></td>';
+        labels.forEach(l => { html += `<td class="corr-label-top">${l.substring(0, 6)}.</td>`; });
+        html += '</tr>';
 
-        for (let i = 0; i < 4; i++) {
-            html += `<div class="heatmap-label">${labels[i]}</div>`;
-            for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < labels.length; i++) {
+            html += `<tr><td class="corr-label-left">${labels[i]}</td>`;
+            for (let j = 0; j < labels.length; j++) {
                 const val = corrMatrix[i][j];
-                const hue = Math.floor(60 * (1 - val));
-                const lightness = Math.floor(55 + (1 - val) * 0);
-                const bgColor = `hsl(${hue}, 90%, 55%)`;
-                html += `<div class="heatmap-cell" style="background-color: ${bgColor};">${val.toFixed(1)}</div>`;
+                const lightness = 95 - (val * 55);
+                const bgColor = `hsl(210, 100%, ${lightness}%)`;
+                const textColor = val > 0.6 ? '#ffffff' : '#111111';
+                html += `<td><div class="corr-cell" style="background-color: ${bgColor}; color: ${textColor};" title="Корреляция: ${labels[i]} / ${labels[j]}">${val.toFixed(2)}</div></td>`;
             }
+            html += '</tr>';
         }
-        html += '</div>';
-        html += `<div class="heatmap-legend-container">
-                    <div class="heatmap-legend-label">1.0</div>
-                    <div class="heatmap-legend-bar"></div>
-                    <div class="heatmap-legend-label">0.0</div>
-                 </div></div>`;
-
+        html += '</table></div>';
+        html += `<div class="d-flex justify-content-center align-items-center mt-3 gap-2" style="color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">
+                    <span>Слабая связь (0.0)</span>
+                    <div style="width: 150px; height: 8px; border-radius: 4px; background: linear-gradient(to right, hsl(210, 100%, 95%), hsl(210, 100%, 40%));"></div>
+                    <span>Сильная связь (1.0)</span>
+                 </div>`;
         document.getElementById('heatmapContainer').innerHTML = html;
     }
-
-    renderHeatmap();
+    renderCorrelationMatrix();
 </script>

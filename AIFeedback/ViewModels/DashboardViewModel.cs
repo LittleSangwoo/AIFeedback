@@ -41,5 +41,6 @@ namespace AIFeedback.ViewModels
         // =====================================
         public List<double> TrendValues { get; set; } = new List<double>();
         public List<string> TrendLabels { get; set; } = new List<string>();
+        public string CorrelationMatrixJson { get; set; }
     }
 }

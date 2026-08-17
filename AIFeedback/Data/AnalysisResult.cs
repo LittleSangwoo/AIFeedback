@@ -43,7 +43,8 @@ namespace AIFeedback.Data
 
         // Для отладки (опционально)
         public string? RawComments { get; set; }
-
+        // Добавь это свойство к остальным полям в Data/AnalysisResult.cs
+        public string CorrelationMatrixJson { get; set; } = "null";
         public string SessionName { get; set; }
         public DateTime DateProcessed { get; set; }
         public double AvgUtility { get; set; }

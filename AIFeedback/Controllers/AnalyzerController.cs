@@ -46,6 +46,8 @@ namespace AIFeedback.Controllers
             // ==========================================
             // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
             // ==========================================
+
+            // Теперь парсер возвращает 8 переменных, включая CorrelationMatrixJson
             var parsedData = await _excelParserService.ParseAsync(uploadFile.OpenReadStream());
 
             double avgUtility = parsedData.NumericAverages.GetValueOrDefault("Usefulness", 0);
@@ -179,7 +181,10 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
 
                 // Сохраняем сериализованные данные тренда
                 TrendLabelsJson = JsonSerializer.Serialize(trendLabels),
-                TrendValuesJson = JsonSerializer.Serialize(trendValues)
+                TrendValuesJson = JsonSerializer.Serialize(trendValues),
+
+                // СОХРАНЯЕМ МАТРИЦУ КОРРЕЛЯЦИЙ В БД!
+                CorrelationMatrixJson = parsedData.CorrelationMatrixJson
             };
 
             await _repository.AddAsync(analysisRecord);
