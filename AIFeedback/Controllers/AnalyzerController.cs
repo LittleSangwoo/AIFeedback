@@ -47,8 +47,8 @@ namespace AIFeedback.Controllers
             // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
             // ==========================================
 
-            // ОБНОВЛЕНИЕ: Ловим новую 9-ю переменную distJson
-            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream());
+            // ПЕРЕДАЕМ uploadFile.FileName В ПАРСЕР
+            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
 
             double avgUtility = numericAvgs.GetValueOrDefault("Usefulness", 0);
             double avgPractice = numericAvgs.GetValueOrDefault("Practicality", 0);

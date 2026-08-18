@@ -13,7 +13,8 @@ namespace AIFeedback.Services.Excel
 {
     public interface IExcelParserService
     {
-        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream);
+        // ДОБАВИЛИ string fileName в сигнатуру
+        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream, string fileName);
         Task<double> ParseHistoryFileAsync(Stream fileStream);
     }
 
@@ -26,12 +27,19 @@ namespace AIFeedback.Services.Excel
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream)
+        // ОБЯЗАТЕЛЬНО ДОБАВЬ string fileName СЮДА ЖЕ:
+        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream, string fileName)
         {
             return await Task.Run(() =>
             {
-                var allComments = new List<string>();
+                // БЕРЕМ НАЗВАНИЕ ИЗ ИМЕНИ ЗАГРУЖЕННОГО ФАЙЛА (БЕЗ РАСШИРЕНИЯ)
+                string programName = Path.GetFileNameWithoutExtension(fileName);
+                if (string.IsNullOrWhiteSpace(programName))
+                {
+                    programName = "Анализируемая программа";
+                }
 
+                var allComments = new List<string>();
                 var usefulnessList = new List<double>();
                 var practicalityList = new List<double>();
                 var accessibilityList = new List<double>();
@@ -45,7 +53,6 @@ namespace AIFeedback.Services.Excel
                     { "Interaction", new int[10] }
                 };
 
-                string programName = "Анализируемая программа";
                 int listenerCount = 0;
 
                 int dist1to3 = 0, dist4to7 = 0, dist8to10 = 0;

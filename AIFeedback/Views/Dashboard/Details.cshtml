@@ -3,8 +3,8 @@
 
 <style>
     /* =======================================================
-       CSS-ПЕРЕМЕННЫЕ (Светлая официальная тема по умолчанию)
-       ======================================================= */
+        CSS-ПЕРЕМЕННЫЕ (Светлая официальная тема по умолчанию)
+        ======================================================= */
     :root {
         --bg-color: #f4f6f8;
         --text-color: #212529;
@@ -94,13 +94,24 @@
         font-weight: 700; font-size: 0.95rem; border: 1px solid rgba(128,128,128,0.1); cursor: default;
     }
 
+    /* Скрыто по умолчанию на экране */
+    .print-only {
+        display: none;
+    }
+
     /* =======================================================
-       СТРОГИЙ РЕЖИМ ПЕЧАТИ (Профессиональный PDF)
-       ======================================================= */
+        СТРОГИЙ РЕЖИМ ПЕЧАТИ (Профессиональный PDF)
+        ======================================================= */
     @@media print {
         @@page { size: A4; margin: 1.5cm; }
         body { background-color: white !important; color: black !important; font-size: 11pt !important; }
         .btn, .alert, header, nav, .no-print, .dashboard-header { display: none !important; }
+        
+        /* Показываем заголовок при печати */
+        .print-only {
+            display: block !important;
+        }
+
         .stat-card, .chart-card, .ai-insights-card {
             background-color: white !important; border: none !important; box-shadow: none !important;
             padding: 10px !important; margin-bottom: 15px !important; page-break-inside: avoid;
@@ -126,15 +137,15 @@
         .text-accent { color: #004d99 !important; }
         .text-success { color: #28a745 !important; }
         .corr-label-top, .corr-label-left { color: black !important; }
-
-        body::before {
-            content: "АНАЛИТИЧЕСКАЯ СПРАВКА ПО ПРОГРАММЕ"; display: block; text-align: center;
-            font-size: 18pt; font-weight: bold; margin-bottom: 20px; color: black; text-transform: uppercase; border-bottom: 2px solid black; padding-bottom: 10px;
-        }
     }
 </style>
 
 <div class="container-fluid mt-4 mb-5 px-4">
+
+    <!-- ЗАГОЛОВОК ТОЛЬКО ДЛЯ ПЕЧАТИ -->
+    <div class="print-only text-center mb-4">
+        <h3 class="fw-bold text-uppercase" style="border-bottom: 2px solid black; padding-bottom: 10px; font-size: 16pt;">АНАЛИТИЧЕСКАЯ СПРАВКА: @Model.ProgramName</h3>
+    </div>
 
     @if (TempData["AiWarning"] != null)
     {
@@ -153,8 +164,8 @@
                 <i class="bi bi-file-earmark-excel me-2"></i>Excel (Расчеты)
             </a>
             <a asp-controller="Dashboard" asp-action="DownloadWord" asp-route-id="@Model.Id" class="btn btn-export px-3 text-primary border-primary">
-    <i class="bi bi-file-word me-2"></i>Экспорт Word
-</a>
+                <i class="bi bi-file-word me-2"></i>Экспорт Word
+            </a>
             <button class="btn btn-export px-3 text-danger border-danger" onclick="window.print()">
                 <i class="bi bi-file-pdf me-2"></i>Экспорт PDF
             </button>
