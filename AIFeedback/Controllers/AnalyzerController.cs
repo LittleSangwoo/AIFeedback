@@ -47,19 +47,19 @@ namespace AIFeedback.Controllers
             // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
             // ==========================================
 
-            // Теперь парсер возвращает 8 переменных, включая CorrelationMatrixJson
-            var parsedData = await _excelParserService.ParseAsync(uploadFile.OpenReadStream());
+            // ОБНОВЛЕНИЕ: Ловим новую 9-ю переменную distJson
+            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream());
 
-            double avgUtility = parsedData.NumericAverages.GetValueOrDefault("Usefulness", 0);
-            double avgPractice = parsedData.NumericAverages.GetValueOrDefault("Practicality", 0);
-            double avgAccessibility = parsedData.NumericAverages.GetValueOrDefault("Accessibility", 0);
-            double avgInteraction = parsedData.NumericAverages.GetValueOrDefault("Interaction", 0);
-            double avgEngagement = parsedData.NumericAverages.GetValueOrDefault("Engagement", 0);
+            double avgUtility = numericAvgs.GetValueOrDefault("Usefulness", 0);
+            double avgPractice = numericAvgs.GetValueOrDefault("Practicality", 0);
+            double avgAccessibility = numericAvgs.GetValueOrDefault("Accessibility", 0);
+            double avgInteraction = numericAvgs.GetValueOrDefault("Interaction", 0);
+            double avgEngagement = numericAvgs.GetValueOrDefault("Engagement", 0);
 
             // Общая удовлетворенность текущего потока
             double overallSatisfaction = (avgUtility + avgPractice + avgAccessibility + avgInteraction) / 4.0;
 
-            string rawComments = string.Join("\n", parsedData.AllComments);
+            string rawComments = string.Join("\n", allComments);
 
             // ==========================================
             // 2. ОБРАБОТКА ИСТОРИЧЕСКИХ ФАЙЛОВ (ТРЕНД С ГРУППИРОВКОЙ)
@@ -158,9 +158,9 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
             // ==========================================
             var analysisRecord = new AnalysisResult
             {
-                SessionName = !string.IsNullOrEmpty(parsedData.ProgramName) ? parsedData.ProgramName : "Анализ анкет КУ",
-                ProgramName = parsedData.ProgramName,
-                ListenerCount = parsedData.ListenerCount,
+                SessionName = !string.IsNullOrEmpty(progName) ? progName : "Анализ анкет КУ",
+                ProgramName = progName,
+                ListenerCount = listenerCount,
                 CreatedAt = DateTime.UtcNow,
 
                 UsefulnessAvg = avgUtility,
@@ -170,9 +170,9 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
                 OverallSatisfaction = overallSatisfaction,
                 EngagementYesPercent = (int)avgEngagement,
 
-                Dist1to3 = parsedData.Dist1to3,
-                Dist4to7 = parsedData.Dist4to7,
-                Dist8to10 = parsedData.Dist8to10,
+                Dist1to3 = d1to3,
+                Dist4to7 = d4to7,
+                Dist8to10 = d8to10,
 
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),
@@ -183,8 +183,11 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
                 TrendLabelsJson = JsonSerializer.Serialize(trendLabels),
                 TrendValuesJson = JsonSerializer.Serialize(trendValues),
 
-                // СОХРАНЯЕМ МАТРИЦУ КОРРЕЛЯЦИЙ В БД!
-                CorrelationMatrixJson = parsedData.CorrelationMatrixJson
+                // СОХРАНЯЕМ МАТРИЦУ КОРРЕЛЯЦИЙ В БД
+                CorrelationMatrixJson = matrixJson,
+
+                // ОБНОВЛЕНИЕ: СОХРАНЯЕМ РАСПРЕДЕЛЕНИЕ ОЦЕНОК В БД
+                ScoresDistributionJson = distJson
             };
 
             await _repository.AddAsync(analysisRecord);

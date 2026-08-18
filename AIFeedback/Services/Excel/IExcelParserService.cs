@@ -6,15 +6,14 @@ using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
-using System.Text.Json; // Добавлено для JSON
+using System.Text.Json;
+using System.Globalization;
 
 namespace AIFeedback.Services.Excel
 {
     public interface IExcelParserService
     {
-        // Измененная сигнатура: теперь возвращает также CorrelationMatrixJson
-        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson)> ParseAsync(Stream fileStream);
-
+        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream);
         Task<double> ParseHistoryFileAsync(Stream fileStream);
     }
 
@@ -27,17 +26,24 @@ namespace AIFeedback.Services.Excel
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson)> ParseAsync(Stream fileStream)
+        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream)
         {
             return await Task.Run(() =>
             {
                 var allComments = new List<string>();
 
-                // Списки для сырых оценок (нужны для подсчета средних И корреляции)
                 var usefulnessList = new List<double>();
                 var practicalityList = new List<double>();
                 var accessibilityList = new List<double>();
                 var interactionList = new List<double>();
+
+                var scoresDist = new Dictionary<string, int[]>
+                {
+                    { "Usefulness", new int[10] },
+                    { "Practicality", new int[10] },
+                    { "Accessibility", new int[10] },
+                    { "Interaction", new int[10] }
+                };
 
                 string programName = "Анализируемая программа";
                 int listenerCount = 0;
@@ -52,21 +58,23 @@ namespace AIFeedback.Services.Excel
                     var worksheet = workbook.Worksheet(1);
 
                     var headerRow = worksheet.FirstRowUsed();
-                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null");
+                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}");
 
                     int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1, engagementCol = -1;
                     var textColumns = new List<int>();
 
                     foreach (var cell in headerRow.CellsUsed())
                     {
+                        // Убираем переносы строк и лишние пробелы из заголовка для точного поиска
                         string header = cell.Value.ToString()?.ToLower() ?? string.Empty;
+                        header = Regex.Replace(header, @"\s+", " ");
                         int colIndex = cell.Address.ColumnNumber;
 
-                        if (header.Contains("полезность программы по 10")) usefulnessCol = colIndex;
-                        else if (header.Contains("практическую часть по 10")) practicalityCol = colIndex;
-                        else if (header.Contains("доступность материала программы по 10")) accessibilityCol = colIndex;
-                        else if (header.Contains("взаимодействие по 10")) interactionCol = colIndex;
-                        else if (header.Contains("отстраненность")) engagementCol = colIndex;
+                        if (header.Contains("полезност") && (header.Contains("10") || header.Contains("шкале"))) usefulnessCol = colIndex;
+                        else if (header.Contains("практик") && (header.Contains("10") || header.Contains("шкале"))) practicalityCol = colIndex;
+                        else if (header.Contains("доступност") && (header.Contains("10") || header.Contains("шкале"))) accessibilityCol = colIndex;
+                        else if (header.Contains("взаимодействи") && (header.Contains("10") || header.Contains("шкале"))) interactionCol = colIndex;
+                        else if (header.Contains("отстран") || header.Contains("потерю интерес")) engagementCol = colIndex;
 
                         if (!header.Contains("ф.и.о.") && !header.Contains("место вашей работы") && !header.Contains("категории относится"))
                         {
@@ -75,7 +83,7 @@ namespace AIFeedback.Services.Excel
                     }
 
                     var range = worksheet.RangeUsed();
-                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null");
+                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}");
 
                     var rows = range.RowsUsed().Skip(1).ToList();
                     listenerCount = rows.Count;
@@ -84,23 +92,37 @@ namespace AIFeedback.Services.Excel
                     {
                         var userScores = new List<double>();
 
-                        // Читаем оценки слушателя (используем 0, если не ответил, чтобы массивы были одинаковой длины для корреляции)
-                        double uScore = 0, pScore = 0, aScore = 0, iScore = 0;
-
-                        if (usefulnessCol != -1 && TryParseInt(row.Cell(usefulnessCol).Value.ToString(), out int u))
-                        { uScore = u; usefulnessList.Add(u); userScores.Add(u); }
+                        // ИСПРАВЛЕНИЕ: Читаем как double и аккуратно округляем для словаря
+                        if (usefulnessCol != -1 && TryParseDouble(row.Cell(usefulnessCol).Value.ToString(), out double u))
+                        {
+                            usefulnessList.Add(u); userScores.Add(u);
+                            int rounded = ClampScore(u);
+                            scoresDist["Usefulness"][rounded - 1]++;
+                        }
                         else { usefulnessList.Add(0); }
 
-                        if (practicalityCol != -1 && TryParseInt(row.Cell(practicalityCol).Value.ToString(), out int p))
-                        { pScore = p; practicalityList.Add(p); userScores.Add(p); }
+                        if (practicalityCol != -1 && TryParseDouble(row.Cell(practicalityCol).Value.ToString(), out double p))
+                        {
+                            practicalityList.Add(p); userScores.Add(p);
+                            int rounded = ClampScore(p);
+                            scoresDist["Practicality"][rounded - 1]++;
+                        }
                         else { practicalityList.Add(0); }
 
-                        if (accessibilityCol != -1 && TryParseInt(row.Cell(accessibilityCol).Value.ToString(), out int a))
-                        { aScore = a; accessibilityList.Add(a); userScores.Add(a); }
+                        if (accessibilityCol != -1 && TryParseDouble(row.Cell(accessibilityCol).Value.ToString(), out double a))
+                        {
+                            accessibilityList.Add(a); userScores.Add(a);
+                            int rounded = ClampScore(a);
+                            scoresDist["Accessibility"][rounded - 1]++;
+                        }
                         else { accessibilityList.Add(0); }
 
-                        if (interactionCol != -1 && TryParseInt(row.Cell(interactionCol).Value.ToString(), out int i))
-                        { iScore = i; interactionList.Add(i); userScores.Add(i); }
+                        if (interactionCol != -1 && TryParseDouble(row.Cell(interactionCol).Value.ToString(), out double i))
+                        {
+                            interactionList.Add(i); userScores.Add(i);
+                            int rounded = ClampScore(i);
+                            scoresDist["Interaction"][rounded - 1]++;
+                        }
                         else { interactionList.Add(0); }
 
                         // ВОВЛЕЧЕННОСТЬ
@@ -114,7 +136,7 @@ namespace AIFeedback.Services.Excel
                             }
                         }
 
-                        // РАСПРЕДЕЛЕНИЕ
+                        // РАСПРЕДЕЛЕНИЕ 1-3, 4-7, 8-10
                         if (userScores.Count > 0)
                         {
                             double avgScore = userScores.Average();
@@ -141,7 +163,6 @@ namespace AIFeedback.Services.Excel
                     _logger.LogError(ex, "Ошибка при парсинге основного Excel файла.");
                 }
 
-                // 1. Считаем средние баллы (игнорируя нули, которые мы добавляли для выравнивания массивов)
                 var averages = new Dictionary<string, double>
                 {
                     { "Usefulness", usefulnessList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
@@ -151,7 +172,6 @@ namespace AIFeedback.Services.Excel
                     { "Engagement", totalEngagementAnswers > 0 ? Math.Round((double)engagedCount / totalEngagementAnswers * 100) : 0 }
                 };
 
-                // 2. Считаем Матрицу Корреляций Пирсона (4x4)
                 var matrix = new double[4][];
                 var dataLists = new List<List<double>> { usefulnessList, practicalityList, accessibilityList, interactionList };
 
@@ -160,21 +180,15 @@ namespace AIFeedback.Services.Excel
                     matrix[i] = new double[4];
                     for (int j = 0; j < 4; j++)
                     {
-                        if (i == j)
-                        {
-                            matrix[i][j] = 1.0; // Корреляция с самим собой всегда 1
-                        }
-                        else
-                        {
-                            matrix[i][j] = CalculatePearsonCorrelation(dataLists[i], dataLists[j]);
-                        }
+                        if (i == j) matrix[i][j] = 1.0;
+                        else matrix[i][j] = CalculatePearsonCorrelation(dataLists[i], dataLists[j]);
                     }
                 }
 
-                // Превращаем матрицу в JSON-строку для передачи в БД и Дашборд
                 string matrixJson = JsonSerializer.Serialize(matrix);
+                string distJson = JsonSerializer.Serialize(scoresDist);
 
-                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10, matrixJson);
+                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10, matrixJson, distJson);
             });
         }
 
@@ -182,13 +196,11 @@ namespace AIFeedback.Services.Excel
         {
             return await Task.Run(() =>
             {
-                var allScores = new List<int>();
-
+                var allScores = new List<double>();
                 try
                 {
                     using var workbook = new XLWorkbook(fileStream);
                     var worksheet = workbook.Worksheet(1);
-
                     var headerRow = worksheet.FirstRowUsed();
                     if (headerRow == null) return 0.0;
 
@@ -207,64 +219,68 @@ namespace AIFeedback.Services.Excel
 
                     var range = worksheet.RangeUsed();
                     if (range == null) return 0.0;
-
                     var rows = range.RowsUsed().Skip(1);
 
                     foreach (var row in rows)
                     {
-                        if (usefulnessCol != -1 && TryParseInt(row.Cell(usefulnessCol).Value.ToString(), out int u)) allScores.Add(u);
-                        if (practicalityCol != -1 && TryParseInt(row.Cell(practicalityCol).Value.ToString(), out int p)) allScores.Add(p);
-                        if (accessibilityCol != -1 && TryParseInt(row.Cell(accessibilityCol).Value.ToString(), out int a)) allScores.Add(a);
-                        if (interactionCol != -1 && TryParseInt(row.Cell(interactionCol).Value.ToString(), out int i)) allScores.Add(i);
+                        if (usefulnessCol != -1 && TryParseDouble(row.Cell(usefulnessCol).Value.ToString(), out double u)) allScores.Add(u);
+                        if (practicalityCol != -1 && TryParseDouble(row.Cell(practicalityCol).Value.ToString(), out double p)) allScores.Add(p);
+                        if (accessibilityCol != -1 && TryParseDouble(row.Cell(accessibilityCol).Value.ToString(), out double a)) allScores.Add(a);
+                        if (interactionCol != -1 && TryParseDouble(row.Cell(interactionCol).Value.ToString(), out double i)) allScores.Add(i);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ошибка при парсинге исторического Excel файла.");
                 }
-
                 return allScores.Count > 0 ? Math.Round(allScores.Average(), 1) : 0.0;
             });
         }
 
-        // =========================================================================
-        // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-        // =========================================================================
-
-        private bool TryParseInt(string? value, out int result)
+        // ИСПРАВЛЕННЫЙ МЕТОД ПАРСИНГА
+        private bool TryParseDouble(string? value, out double result)
         {
             result = 0;
             if (string.IsNullOrWhiteSpace(value)) return false;
 
-            var match = Regex.Match(value.Trim(), @"\d+");
-            if (match.Success && int.TryParse(match.Value, out int val))
+            // Извлекаем только цифры, точки и запятые
+            var match = Regex.Match(value.Trim(), @"\d+([.,]\d+)?");
+            if (match.Success)
             {
-                if (val >= 1 && val <= 10)
+                string cleanVal = match.Value.Replace(",", ".");
+                if (double.TryParse(cleanVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double val))
                 {
-                    result = val;
-                    return true;
+                    if (val >= 1 && val <= 10)
+                    {
+                        result = val;
+                        return true;
+                    }
                 }
             }
             return false;
         }
 
+        // Ограничитель и округлитель для массива (от 1 до 10)
+        private int ClampScore(double score)
+        {
+            int rounded = (int)Math.Round(score, MidpointRounding.AwayFromZero);
+            if (rounded < 1) return 1;
+            if (rounded > 10) return 10;
+            return rounded;
+        }
+
         private bool IsValidComment(string? comment)
         {
             if (string.IsNullOrWhiteSpace(comment)) return false;
-
             var lower = comment.ToLower();
-            if (lower == "-" || lower == "нет" || lower == "да" || lower.Contains("затрудняюсь") || lower.Length < 3)
-                return false;
-
+            if (lower == "-" || lower == "нет" || lower == "да" || lower.Contains("затрудняюсь") || lower.Length < 3) return false;
             return true;
         }
 
-        // Математическая функция расчета коэффициента корреляции Пирсона
         private double CalculatePearsonCorrelation(List<double> x, List<double> y)
         {
             if (x.Count == 0 || y.Count == 0 || x.Count != y.Count) return 0.0;
 
-            // Очищаем нули (пропуски) по обоим массивам синхронно, чтобы не искажать корреляцию
             var cleanX = new List<double>();
             var cleanY = new List<double>();
 
@@ -277,7 +293,7 @@ namespace AIFeedback.Services.Excel
                 }
             }
 
-            if (cleanX.Count <= 1) return 0.0; // Невозможно найти корреляцию для 1 человека
+            if (cleanX.Count <= 1) return 0.0;
 
             double avgX = cleanX.Average();
             double avgY = cleanY.Average();
@@ -297,8 +313,6 @@ namespace AIFeedback.Services.Excel
             if (sumX2 == 0 || sumY2 == 0) return 0.0;
 
             double result = sumXY / Math.Sqrt(sumX2 * sumY2);
-
-            // Если получился NaN или бесконечность - возвращаем 0
             if (double.IsNaN(result) || double.IsInfinity(result)) return 0.0;
 
             return Math.Round(result, 2);

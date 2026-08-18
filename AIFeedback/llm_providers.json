@@ -1,13 +1,13 @@
 ﻿[
-    {
-        "Id": "234e2493-4f0f-45c8-9f52-8372424241e7",
-        "Name": "groq",
-        "IsLocal": false,
-        "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
-        "Model": "openai/gpt-oss-120b",
-        "ApiKey": "-",
-        "Scope": null
-    },
+  {
+    "Id": "234e2493-4f0f-45c8-9f52-8372424241e7",
+    "Name": "groq",
+    "IsLocal": false,
+    "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
+    "Model": "openai/gpt-oss-120b",
+    "ApiKey": "",
+    "Scope": null
+  },
     {
         "Id": "298ee187-abe1-4001-a23b-7056283fe80a",
         "Name": "gigachatApi",

@@ -2,7 +2,6 @@ using AIFeedback.Data;
 using AIFeedback.Services;
 using AIFeedback.Services.Excel;
 using AIFeedback.Services.Report;
-using AIFeedback.Services.DataProcessing;
 using AIFeedback.Services.LLM;
 using AIFeedback.Services.LLM.Providers;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +45,7 @@ builder.Services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>(
 
 // РЕГИСТРИРУЕМ СЕРВИСЫ РАЗРАБОТЧИКА 2 (ЭТО МЫ!)
 builder.Services.AddScoped<IExcelParserService, ExcelParserService>();
-builder.Services.AddScoped<IReportService, ReportExportService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 var app = builder.Build();
 
