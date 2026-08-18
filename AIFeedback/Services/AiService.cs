@@ -21,7 +21,7 @@ namespace AIFeedback.Services
             string rawResponse = string.Empty;
             try
             {
-                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt);
+                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, providerName: providerName);
 
                 //if (string.IsNullOrWhiteSpace(rawResponse))
                 //{
