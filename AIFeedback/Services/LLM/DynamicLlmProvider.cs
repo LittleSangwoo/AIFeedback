@@ -24,43 +24,15 @@ namespace AIFeedback.Services.LLM
         // НОВЫЙ ОБЪЕДИНЕННЫЙ МЕТОД
         public async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null)
         {
-            // 1. Читаем и парсим файл конфигурации
-            string json = await System.IO.File.ReadAllTextAsync("llm_providers.json");
+            var allProviders = _settingsService.GetAllProviders();
 
-            //// Парсим список конфигураций
-            //var configs = JsonSerializer.Deserialize<List<LlmConfiguration>>(json, new JsonSerializerOptions
-            //{
-            //    PropertyNameCaseInsensitive = true
-            //});
+            var providerConfig = ResolveProvider(allProviders, providerName);
 
-            //// Вытаскиваем все списки провайдеров в один плоский список
-            //var allProviders = configs?
-            //    .Where(c => c.Providers != null)
-            //    .SelectMany(c => c.Providers)
-            //    .ToList() ?? new List<LlmProviderConfig>(); // Убедись, что LlmProviderConfig существует в проекте
-
-            // Парсим сразу в список ПРОВАЙДЕРОВ (а не конфигураций)
-            var allProviders = JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<LlmProviderConfig>();
-
-            // 2. Ищем провайдера: по имени с главной страницы -> активного -> первого попавшегося
-            var providerConfig = allProviders.FirstOrDefault(p => p.Name != null && p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase))
-
-                              ?? allProviders.FirstOrDefault();
-
-            // 3. Бросаем ошибку только если JSON полностью пустой
             if (providerConfig == null)
             {
                 throw new InvalidOperationException("В файле llm_providers.json нет ни одной записи провайдеров!");
             }
 
-            // =======================================================
-            // СТАРЫЙ КОД ОТПРАВКИ ЗАПРОСА (С ИСПОЛЬЗОВАНИЕМ НАЙДЕННОГО providerConfig)
-            // =======================================================
-
-            // Формируем универсальный payload в формате OpenAI
             var payload = new
             {
                 model = providerConfig.Model,
@@ -69,7 +41,7 @@ namespace AIFeedback.Services.LLM
                     new { role = "system", content = systemPrompt },
                     new { role = "user", content = userPrompt }
                 },
-                temperature = temperature, // Подставляется температура из контракта
+                temperature = temperature,
                 stream = false
             };
 
@@ -79,36 +51,36 @@ namespace AIFeedback.Services.LLM
                 Content = requestContent
             };
 
-            // string.Equals безопасно обработает null и просто вернет false
-            if (string.Equals(providerConfig.AuthType, "GigaChat", StringComparison.OrdinalIgnoreCase))
+            if (IsGigaChatProvider(providerConfig))
             {
-                var token = await GetGigaChatTokenAsync(providerConfig.ApiKey);
+                var token = await GetGigaChatTokenAsync(providerConfig.ApiKey, providerConfig.Scope);
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
-            else if (!string.IsNullOrEmpty(providerConfig.ApiKey))
+            else if (!string.IsNullOrEmpty(providerConfig.ApiKey) && providerConfig.ApiKey != "-")
             {
-                // Стандартный подход для Groq, OpenAI и т.д.
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", providerConfig.ApiKey);
             }
 
-            // Логируем URL перед отправкой
-            Console.WriteLine($"Sending request to: {providerConfig.BaseUrl}");
+            if (IsYandexProvider(providerConfig) && !string.IsNullOrEmpty(providerConfig.Scope))
+            {
+                requestMessage.Headers.Add("x-folder-id", providerConfig.Scope);
+
+                
+            }
+
+            Console.WriteLine($"Sending request to: {providerConfig.BaseUrl} (provider: {providerConfig.Name})");
 
             var response = await _httpClient.SendAsync(requestMessage);
 
-
-
-            // ИСПРАВЛЕНИЕ: Вместо жесткого падения пробрасываем понятную ошибку в контроллер
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync();
-                throw new Exception($"API Error {response.StatusCode}. Проверьте правильность API ключа в llm_providers.json. Текст ответа: {errorText}");
+                throw new Exception($"API Error {response.StatusCode} ({providerConfig.Name}). Проверьте правильность API ключа в llm_providers.json. Текст ответа: {errorText}");
             }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);
 
-            // Парсим стандартный ответ (choices[0].message.content)
             return document.RootElement
                 .GetProperty("choices")[0]
                 .GetProperty("message")
@@ -116,8 +88,40 @@ namespace AIFeedback.Services.LLM
                 .GetString();
         }
 
-        // Вспомогательный метод для получения токена GigaChat
-        private async Task<string> GetGigaChatTokenAsync(string authKey)
+        private static LlmProviderConfig ResolveProvider(List<LlmProviderConfig> allProviders, string providerName)
+        {
+            if (allProviders.Count == 0)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(providerName))
+                return allProviders.FirstOrDefault();
+
+            var normalized = providerName.Trim();
+
+            var exactMatch = allProviders.FirstOrDefault(p =>
+                p.Name != null && p.Name.Equals(normalized, StringComparison.OrdinalIgnoreCase));
+            if (exactMatch != null)
+                return exactMatch;
+
+            if (normalized.Equals("gigachat", StringComparison.OrdinalIgnoreCase))
+            {
+                return allProviders.FirstOrDefault(p =>
+                    p.Name != null && p.Name.Contains("gigachat", StringComparison.OrdinalIgnoreCase));
+            }
+
+            throw new InvalidOperationException(
+                $"Провайдер '{providerName}' не найден в llm_providers.json. Доступные: {string.Join(", ", allProviders.Select(p => p.Name))}");
+        }
+
+        private static bool IsGigaChatProvider(LlmProviderConfig config) =>
+            string.Equals(config.AuthType, "GigaChat", StringComparison.OrdinalIgnoreCase)
+            || (config.Name?.Contains("gigachat", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        private static bool IsYandexProvider(LlmProviderConfig config) =>
+            config.Name?.Contains("yandex", StringComparison.OrdinalIgnoreCase) == true
+            || config.BaseUrl?.Contains("yandex", StringComparison.OrdinalIgnoreCase) == true;
+
+        private async Task<string> GetGigaChatTokenAsync(string clientId, string secret)
         {
             if (!string.IsNullOrEmpty(_gigaChatToken) && DateTime.UtcNow < _gigaChatTokenExpiresAt)
             {
@@ -125,24 +129,24 @@ namespace AIFeedback.Services.LLM
             }
 
             var request = new HttpRequestMessage(HttpMethod.Post, "https://ngw.devices.sberbank.ru:9443/api/v2/oauth");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authKey);
+            var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{secret}"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
             request.Headers.Add("RqUID", Guid.NewGuid().ToString());
             request.Content = new StringContent("scope=GIGACHAT_API_PERS", Encoding.UTF8, "application/x-www-form-urlencoded");
 
             var response = await _httpClient.SendAsync(request);
 
-            // ИСПРАВЛЕНИЕ: Мягкий перехват ошибки для GigaChat
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync();
-                throw new Exception($"GigaChat Auth Error {response.StatusCode}. Проверьте авторизационные данные. Текст: {errorText}");
+                throw new Exception($"GigaChat Auth Error {response.StatusCode}. Проверьте Client ID и Secret в llm_providers.json. Текст: {errorText}");
             }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);
 
             _gigaChatToken = document.RootElement.GetProperty("access_token").GetString();
-            _gigaChatTokenExpiresAt = DateTime.UtcNow.AddMinutes(25); // Запас 5 минут
+            _gigaChatTokenExpiresAt = DateTime.UtcNow.AddMinutes(25);
 
             return _gigaChatToken;
         }

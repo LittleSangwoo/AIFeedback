@@ -11,6 +11,7 @@ namespace AIFeedback.Services
         void SaveConfiguration(LlmConfiguration config);
         LlmProviderConfig GetActiveProvider();
         void SetActiveProvider(string providerId);
+        List<LlmProviderConfig> GetAllProviders();
     }
 
     // Реализация сервиса для работы с JSON-конфигом
@@ -52,12 +53,30 @@ namespace AIFeedback.Services
             File.WriteAllText(_configFilePath, json);
         }
 
+        public List<LlmProviderConfig> GetAllProviders()
+        {
+            if (!File.Exists(_configFilePath))
+                return new List<LlmProviderConfig>();
+
+            string json = File.ReadAllText(_configFilePath);
+            if (string.IsNullOrWhiteSpace(json))
+                return new List<LlmProviderConfig>();
+
+            return JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<LlmProviderConfig>();
+        }
+
         public LlmProviderConfig GetActiveProvider()
         {
-            var config = GetConfiguration();
+            var providers = GetAllProviders();
+            if (providers.Count == 0)
+                return null;
 
-            // Ищем провайдера по Id, который указан как активный
-            return config.Providers.FirstOrDefault(p => p.Id == config.ActiveProviderId);
+            var config = GetConfiguration();
+            return providers.FirstOrDefault(p => p.Id == config.ActiveProviderId)
+                   ?? providers.FirstOrDefault();
         }
 
         public void SetActiveProvider(string providerId)

@@ -56,7 +56,7 @@ namespace AIFeedback.Controllers
                 InteractionAvg = result.InteractionAvg,
                 EngagementYesPercent = result.EngagementYesPercent,
                 OverallSatisfaction = result.OverallSatisfaction,
-
+                CorrelationMatrixJson = result.CorrelationMatrixJson,
                 // Распределение оценок
                 Dist1to3 = result.Dist1to3,
                 Dist4to7 = result.Dist4to7,

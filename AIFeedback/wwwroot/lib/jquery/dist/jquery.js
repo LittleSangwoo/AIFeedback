@@ -1150,7 +1150,7 @@ function setDocument( node ) {
 
 	// Support: IE <10
 	// Check if getElementById returns elements by name
-	// The broken getElementById methods don't pick up programmatically-set names,
+	// The broken getElementById methods don't pick up atically-set names,
 	// so use a roundabout getElementsByName test
 	support.getById = assert( function( el ) {
 		documentElement.appendChild( el ).id = jQuery.expando;
