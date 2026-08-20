@@ -1,46 +1,68 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using AIFeedback.Services;
+using System.Text.Json;
 using AIFeedback.Models;
+using System;
+using System.Collections.Generic;
 
 namespace AIFeedback.Controllers
 {
-    public class SettingsController : Controller
+    // Убрали [ApiController] и [Route] с уровня класса, 
+    // чтобы стандартная маршрутизация страниц (Home, Settings и т.д.) работала корректно.
+    public class SettingsController : Controller // Наследуемся от полноценного Controller!
     {
-        private readonly ILlmSettingsService _settingsService;
+        private readonly string _filePath = "llm_providers.json";
 
-        public SettingsController(ILlmSettingsService settingsService)
-        {
-            _settingsService = settingsService;
-        }
-
-        // GET: /Settings
+        // 1. Метод для отдачи HTML-страницы (Сработает по адресу /Settings)
         public IActionResult Index()
         {
-            var config = _settingsService.GetConfiguration();
-            return View(config);
+            return View();
         }
 
-        // POST: /Settings/Save
-        [HttpPost]
-        public IActionResult Save(LlmConfiguration model)
+        // --- 2. Ниже идут API-методы. Прописываем маршруты прямо для них ---
+
+        [HttpGet("api/settings/providers")]
+        public IActionResult GetProviders()
         {
-            if (ModelState.IsValid)
+            if (!System.IO.File.Exists(_filePath)) return Ok(new List<LlmProviderConfig>());
+            var json = System.IO.File.ReadAllText(_filePath);
+            var providers = JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return Ok(providers ?? new List<LlmProviderConfig>());
+        }
+
+        [HttpPost("api/settings/providers")]
+        public IActionResult SaveProvider([FromBody] LlmProviderConfig newProvider)
+        {
+            var providers = GetProvidersList();
+
+            if (string.IsNullOrEmpty(newProvider.Id))
             {
-                _settingsService.SaveConfiguration(model);
-                TempData["SuccessMessage"] = "Настройки успешно сохранены.";
-                return RedirectToAction(nameof(Index));
+                newProvider.Id = Guid.NewGuid().ToString();
+                providers.Add(newProvider);
+            }
+            else
+            {
+                var index = providers.FindIndex(p => p.Id == newProvider.Id);
+                if (index >= 0) providers[index] = newProvider;
             }
 
-            TempData["ErrorMessage"] = "Ошибка при сохранении настроек.";
-            return View("Index", model);
+            System.IO.File.WriteAllText(_filePath, JsonSerializer.Serialize(providers, new JsonSerializerOptions { WriteIndented = true }));
+            return Ok();
         }
 
-        // POST: /Settings/SetProvider
-        [HttpPost]
-        public IActionResult SetActiveProvider(string providerId)
+        [HttpDelete("api/settings/providers/{id}")]
+        public IActionResult DeleteProvider(string id)
         {
-            _settingsService.SetActiveProvider(providerId);
+            var providers = GetProvidersList();
+            providers.RemoveAll(p => p.Id == id);
+            System.IO.File.WriteAllText(_filePath, JsonSerializer.Serialize(providers, new JsonSerializerOptions { WriteIndented = true }));
             return Ok();
+        }
+
+        private List<LlmProviderConfig> GetProvidersList()
+        {
+            if (!System.IO.File.Exists(_filePath)) return new List<LlmProviderConfig>();
+            var json = System.IO.File.ReadAllText(_filePath);
+            return JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<LlmProviderConfig>();
         }
     }
 }
