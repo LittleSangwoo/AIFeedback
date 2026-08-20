@@ -110,31 +110,38 @@ namespace AIFeedback.Controllers
             // ==========================================
             // 3. ПРОМПТЫ И ВЫЗОВ ИИ
             // ==========================================
-            string systemPrompt = @"You are a data analyst. You MUST output your analysis STRICTLY as a valid JSON object. 
-DO NOT output any markdown (like ```json). DO NOT output any conversational text before or after the JSON.
-Use EXACTLY this JSON structure, filling in the text values in Russian:
+            string systemPrompt = @"Ты — AI-аналитик. Проанализируй отзывы и верни результат СТРОГО в формате JSON. Не пиши никакого текста до или после JSON.
+
+Структура JSON должна быть ровно такой:
 {
-  ""Sentiment"": {
-    ""PositivePercent"": 70.0,
-    ""NeutralPercent"": 20.0,
-    ""NegativePercent"": 10.0
-  },
-  ""TopTopics"": [
-    {
-      ""Name"": ""Название проблемы или темы"",
-      ""MentionsCount"": 5,
-      ""IsRelevant"": true
-    }
-  ],
+  ""GeneralInfo"": ""Общая информация об отзывах и настроении."",
+  ""KeyCriteria"": ""Главные плюсы и минусы."",
+  ""Suggestions"": ""Что предлагают улучшить."",
+  ""Trajectory"": ""Что нужно сделать в будущем."",
   ""Conclusions"": [
     {
-      ""Priority"": ""High"",
-      ""Action"": ""Конкретная рекомендация"",
-      ""DataProof"": ""Обоснование на основе цифр""
+      ""Description"": ""Текст конкретного вывода"",
+      ""Action"": ""Что нужно сделать для исправления"",
+      ""DataProof"": ""Цифры или проценты из отзывов""
     }
   ]
-}";
-            string userPrompt = $"Балл полезности: {avgUtility}\nОтветы:\n{rawComments}";
+}
+}
+
+ПРАВИЛА ДЛЯ Conclusions:
+- Сгенерируй от 3 до 7 выводов.
+- Поле DataProof обязательно должно содержать цифры или проценты.
+- Верни ТОЛЬКО валидный JSON без markdown-разметки (без ```json).";
+
+            // Если текст отзывов длиннее 10000 символов, берем только начало
+            if (rawComments.Length > 10000)
+            {
+                rawComments = rawComments.Substring(0, 10000) + "... [ДАННЫЕ ОБРЕЗАНЫ ИЗ-ЗА ЛИМИТОВ]";
+            }
+
+            string userPrompt = $@"Вот массив отзывов слушателей для анализа:
+{rawComments}
+Внимательно прочитай каждый отзыв, посчитай частоту упоминания проблем и составь JSON-отчет строго по инструкции.";
 
             AiAnalysisResultDto analysisResult = new AiAnalysisResultDto
             {

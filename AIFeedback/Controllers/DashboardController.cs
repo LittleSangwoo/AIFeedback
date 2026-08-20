@@ -1,8 +1,10 @@
 ﻿using AIFeedback.Data;
 using AIFeedback.Models.DTOs;
+using AIFeedback.Services;
 using AIFeedback.Services.Report;
 using AIFeedback.ViewModels;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -10,18 +12,21 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 namespace AIFeedback.Controllers
 {
     public class DashboardController : Controller
     {
         private readonly IAnalysisResultRepository _repository;
         private readonly IReportService _reportService;
+        private readonly ApplicationDbContext _context;
+        private readonly IAiService _aiService;
 
-        public DashboardController(IAnalysisResultRepository repository, IReportService reportService)
+        public DashboardController(IAnalysisResultRepository repository, IReportService reportService, ApplicationDbContext context, IAiService aiService)
         {
             _repository = repository;
             _reportService = reportService;
+            _context = context;
+            _aiService = aiService;
         }
 
         public async Task<IActionResult> Index()
@@ -377,6 +382,33 @@ namespace AIFeedback.Controllers
                 }
             };
             return View(viewModel);
+        }
+
+        // DTO для принятия данных из JS
+        public class ChatRequestDto
+        {
+            public int ResultId { get; set; } // Замени на Guid или string, если у тебя ID другого типа
+            public string Message { get; set; }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AskAi([FromBody] ChatRequestDto request)
+        {
+            try
+            {
+                // 1. Ищем отчет в базе (замени _context.AnalysisResults на свой DbSet, если он называется иначе)
+                var result = await _context.AnalysisResults.FindAsync(request.ResultId);
+                if (result == null) return NotFound(new { error = "Отчет не найден" });
+
+                // 2. Отправляем вопрос нейросети
+                string answer = await _aiService.AskQuestionAsync(result.AiInsightsJson, request.Message);
+
+                return Ok(new { answer });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }

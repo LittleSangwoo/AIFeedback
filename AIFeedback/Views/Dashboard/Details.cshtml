@@ -263,6 +263,36 @@
             </div>
         </div>
     </div>
+
+    <!-- UI ЧАТА -->
+<div class="official-card p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="hero-subtitle mb-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-chat-dots-fill text-primary me-2" viewBox="0 0 16 16">
+              <path d="M16 8c0 3.866-3.582 7-8 7a9 9 0 0 1-2.347-.306c-2.016.577-3.638.124-4.205-.083C1.45 14.512 0 13.313 0 11.5c0-3.866 3.582-7 8-7s8 3.134 8 7M4 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+            </svg>
+            Уточняющие вопросы к ИИ
+        </h5>
+        <button class="btn btn-outline-secondary btn-sm fw-medium" onclick="downloadChat()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+            </svg>
+            Сохранить чат (.txt)
+        </button>
+    </div>
+    
+    <div id="chatBox" class="p-3 mb-3" style="height: 350px; overflow-y: auto; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px;">
+        <div class="text-muted small text-center mb-3">Здесь появится история диалога</div>
+    </div>
+    
+    <div class="input-group">
+        <!-- Важно: id="resultIdHidden" должен содержать ID текущего отчета (Model.Id) -->
+        <input type="hidden" id="resultIdHidden" value="@Model.Id" />
+        <input type="text" id="chatInput" class="form-control form-control-adaptive" placeholder="Введите ваш вопрос..." onkeypress="handleChatKeyPress(event)">
+        <button class="btn btn-official px-4" onclick="sendChatMessage()" id="btnSend">Отправить</button>
+    </div>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -446,4 +476,97 @@
         document.getElementById('heatmapContainer').innerHTML = html;
     }
     renderCorrelationMatrix();
-</script>
+    let chatHistoryForExport = [];
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const btn = document.getElementById('btnSend');
+            const message = input.value.trim();
+            const resultId = document.getElementById('resultIdHidden').value;
+            
+            if (!message) return;
+
+            // Блокируем интерфейс на время загрузки
+            input.disabled = true;
+            btn.disabled = true;
+
+            // Добавляем сообщение пользователя
+            appendMessage('Вы', message, 'user');
+            chatHistoryForExport.push(`Вы: ${message}`);
+            input.value = '';
+
+            const loadingId = appendMessage('AI-Аналитик', 'Анализирую...', 'ai', true);
+
+            try {
+                // Отправляем запрос
+                const response = await fetch('/Dashboard/AskAi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ResultId: resultId, Message: message })
+                });
+
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+
+                if (response.ok) {
+                    appendMessage('AI-Аналитик', data.answer, 'ai');
+                    chatHistoryForExport.push(`AI-Аналитик: ${data.answer}`);
+                } else {
+                    appendMessage('Система', `Ошибка: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                appendMessage('Система', 'Ошибка связи с сервером', 'error');
+            } finally {
+                // Разблокируем интерфейс
+                input.disabled = false;
+                btn.disabled = false;
+                input.focus();
+            }
+        }
+
+        function appendMessage(sender, text, type, isLoading = false) {
+            const chatBox = document.getElementById('chatBox');
+            const id = 'msg-' + Date.now();
+            
+            // Настройка цветов для строгого стиля
+            const colorClass = type === 'user' ? 'text-primary' : (type === 'error' ? 'text-danger' : 'text-success');
+            const opacity = isLoading ? 'opacity: 0.6;' : '';
+
+            // Убираем стартовую надпись, если это первое сообщение
+            if (chatBox.innerHTML.includes('Здесь появится история диалога')) {
+                chatBox.innerHTML = '';
+            }
+            
+            chatBox.innerHTML += `
+                <div id="${id}" class="mb-3" style="${opacity}">
+                    <strong class="${colorClass} fw-bold">${sender}:</strong> 
+                    <div class="mt-1" style="white-space: pre-wrap; color: var(--text-color);">${text}</div>
+                </div>`;
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return id;
+        }
+
+        function handleChatKeyPress(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function downloadChat() {
+            if (chatHistoryForExport.length === 0) {
+                alert("Чат пуст. Сначала задайте вопрос.");
+                return;
+            }
+            
+            const textContent = "--- Экспорт диалога с ИИ-Аналитиком ---\n\n" + chatHistoryForExport.join('\n\n');
+            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+            
+            // Создаем невидимую ссылку и скачиваем файл
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AI_Chat_Report_${new Date().toLocaleDateString()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
