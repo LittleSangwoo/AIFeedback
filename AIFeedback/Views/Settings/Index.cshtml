@@ -1,0 +1,176 @@
+﻿@{
+    ViewData["Title"] = "Управление нейросетями";
+}
+
+<style>
+    /* Твой строгий корпоративный стиль */
+    .hero-title { color: var(--text-color); font-weight: 700; letter-spacing: -0.5px; }
+    .hero-subtitle { color: var(--text-color); opacity: 0.85; font-weight: 500; }
+    .official-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); transition: background-color 0.3s, border-color 0.3s; }
+    .form-label { color: var(--text-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .form-hint { color: var(--text-color); opacity: 0.65; font-size: 0.85rem; margin-top: 6px; }
+    .form-control-adaptive, .form-select-adaptive { background-color: var(--input-bg) !important; border: 1px solid var(--input-border) !important; color: var(--text-color) !important; border-radius: 6px; transition: all 0.2s ease; }
+    .form-control-adaptive:focus, .form-select-adaptive:focus { border-color: var(--accent-color) !important; box-shadow: 0 0 0 3px rgba(0, 77, 153, 0.15) !important; }
+    .btn-official { background-color: var(--accent-color); color: #ffffff; border: none; font-weight: 600; border-radius: 6px; letter-spacing: 0.5px; transition: all 0.2s ease; padding: 10px 20px;}
+    .btn-official:hover { background-color: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    .hidden { display: none !important; }
+</style>
+
+<div class="container py-5" style="max-width: 1200px;">
+    <h2 class="hero-title mb-1">Редактор ИИ Провайдеров</h2>
+    <p class="hero-subtitle mb-4">Настройка шлюзов, ключей и локальных моделей.</p>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="official-card p-4 h-100">
+                <h5 class="hero-subtitle mb-4" id="formTitle">Новый интегратор</h5>
+                
+                <form id="providerForm" class="d-flex flex-column gap-3">
+                    <input type="hidden" id="pId" />
+                    
+                    <div>
+                        <label class="form-label">Условное название</label>
+                        <input type="text" id="pName" class="form-control form-control-adaptive" placeholder="Например: my-custom-llama" required />
+                    </div>
+                    <div>
+                        <label class="form-label">Адрес шлюза API (Endpoint)</label>
+                        <input type="url" id="pApiUrl" class="form-control form-control-adaptive" placeholder="http://localhost:11434/v1/chat/completions" required />
+                    </div>
+                    <div>
+                        <label class="form-label">Имя целевой модели</label>
+                        <input type="text" id="pModelName" class="form-control form-control-adaptive" placeholder="llama3" required />
+                    </div>
+
+                    <div class="form-check form-switch py-2">
+                        <input class="form-check-input" type="checkbox" id="pIsLocal" onchange="toggleAuthFields()">
+                        <label class="form-label mb-0 ms-2" for="pIsLocal" style="cursor:pointer;">Локальное развертывание (Без ключа)</label>
+                    </div>
+
+                    <div id="authContainer" class="auth-container">
+                        <label class="form-label">Тип авторизации</label>
+                        <select id="authType" class="form-select form-select-adaptive mb-3" onchange="toggleAuthType()">
+                            <option value="simple">Стандартный (Bearer Token / Api-Key)</option>
+                            <option value="gigachat">Сбер GigaChat</option>
+                        </select>
+
+                        <div id="apiKeyGroup">
+                            <label class="form-label">Токен авторизации (API Key)</label>
+                            <input type="password" id="pApiKey" class="form-control form-control-adaptive" placeholder="Введите ключ" />
+                        </div>
+
+                        <div id="scopeGroup" class="hidden mt-3">
+                            <label class="form-label">Дополнительный параметр (Scope / Folder ID)</label>
+                            <input type="text" id="pScope" class="form-control form-control-adaptive mb-0" placeholder="Каталог Яндекса или GIGACHAT_API_PERS" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" class="btn btn-secondary flex-grow-1" onclick="resetForm()">Очистить</button>
+                        <button type="submit" class="btn btn-official flex-grow-1">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="official-card p-4 h-100">
+                <h5 class="hero-subtitle mb-4">Активные конфигурации</h5>
+                <div id="providersList" class="d-flex flex-column gap-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            loadProviders();
+            toggleAuthFields();
+        });
+
+        function toggleAuthFields() {
+            const isLocal = document.getElementById('pIsLocal').checked;
+            document.getElementById('authContainer').style.display = isLocal ? 'none' : 'block';
+        }
+
+        function toggleAuthType() {
+            const isGiga = document.getElementById('authType').value === 'gigachat';
+            const scopeGroup = document.getElementById('scopeGroup');
+            isGiga ? scopeGroup.classList.remove('hidden') : scopeGroup.classList.add('hidden');
+        }
+
+        async function loadProviders() {
+            const response = await fetch('/api/settings/providers');
+            const providers = await response.json();
+            const list = document.getElementById('providersList');
+            list.innerHTML = '';
+
+            providers.forEach(p => {
+                list.innerHTML += `
+                    <div class="p-3 border rounded" style="border-color: var(--card-border) !important;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1 hero-subtitle">${p.name} ${p.isLocal ? '<span class="badge bg-secondary ms-2">Local</span>' : ''}</h6>
+                                <div class="form-hint mb-0">${p.baseUrl}</div>
+                                <div class="form-hint mt-0">Модель: ${p.model}</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick='editProvider(${JSON.stringify(p)})'>Изменить</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProvider('${p.id}')">Удалить</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        document.getElementById('providerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const provider = {
+                id: document.getElementById('pId').value,
+                name: document.getElementById('pName').value,
+                baseUrl: document.getElementById('pApiUrl').value,
+                model: document.getElementById('pModelName').value,
+                isLocal: document.getElementById('pIsLocal').checked,
+                apiKey: document.getElementById('pApiKey').value,
+                scope: document.getElementById('pScope').value
+            };
+
+            await fetch('/api/settings/providers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(provider)
+            });
+            resetForm();
+            loadProviders();
+        });
+
+        function editProvider(p) {
+            document.getElementById('formTitle').innerText = 'Редактирование интегратора';
+            document.getElementById('pId').value = p.id;
+            document.getElementById('pName').value = p.name;
+            document.getElementById('pApiUrl').value = p.baseUrl;
+            document.getElementById('pModelName').value = p.model;
+            document.getElementById('pIsLocal').checked = p.isLocal;
+            document.getElementById('pApiKey').value = p.apiKey;
+            document.getElementById('pScope').value = p.scope;
+            
+            toggleAuthFields();
+            if (p.scope) {
+                document.getElementById('authType').value = 'gigachat';
+                toggleAuthType();
+            }
+        }
+
+        async function deleteProvider(id) {
+            if (!confirm('Точно удалить провайдера?')) return;
+            await fetch(`/api/settings/providers/${id}`, { method: 'DELETE' });
+            loadProviders();
+        }
+
+        function resetForm() {
+            document.getElementById('providerForm').reset();
+            document.getElementById('pId').value = '';
+            document.getElementById('formTitle').innerText = 'Новый интегратор';
+            toggleAuthFields();
+        }
+    </script>
+}
