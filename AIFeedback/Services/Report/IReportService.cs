@@ -24,6 +24,9 @@ namespace AIFeedback.Services.Report
         public double InteractionAvg { get; set; }
         public double EngagementYesPercent { get; set; }
         public double OverallSatisfaction { get; set; }
+        public int FormatOfflineCount { get; set; }
+        public int FormatMixedCount { get; set; }
+        public int FormatOnlineCount { get; set; }
         public AiAnalysisResultDto AiAnalysis { get; set; }
 
         // НОВОЕ ПОЛЕ: Словарь распределения оценок
@@ -161,10 +164,16 @@ namespace AIFeedback.Services.Report
                     formHeader.Append(CreateCell("Обучение с применением дистанционных образовательных технологий на своем рабочем месте", false, true, 5));
                     table.Append(formHeader);
 
+                    // ИСПРАВЛЕНИЕ: Динамический расчет процентов для Word
+                    int totalFormatVotes = data.FormatOfflineCount + data.FormatMixedCount + data.FormatOnlineCount;
+                    string offlineText = totalFormatVotes > 0 ? $"{Math.Round((double)data.FormatOfflineCount / totalFormatVotes * 100)}%" : "Н/Д";
+                    string mixedText = totalFormatVotes > 0 ? $"{Math.Round((double)data.FormatMixedCount / totalFormatVotes * 100)}%" : "Н/Д";
+                    string onlineText = totalFormatVotes > 0 ? $"{Math.Round((double)data.FormatOnlineCount / totalFormatVotes * 100)}%" : "Н/Д";
+
                     TableRow formDataRow = new TableRow();
-                    formDataRow.Append(CreateCell("Определяется на основе анкет", false, true, 4, "D9EAD3"));
-                    formDataRow.Append(CreateCell("Определяется на основе анкет", false, true, 5, "FFF2CC"));
-                    formDataRow.Append(CreateCell("Определяется на основе анкет", false, true, 5, "F4CCCC"));
+                    formDataRow.Append(CreateCell(offlineText, true, true, 4, "D9EAD3"));
+                    formDataRow.Append(CreateCell(mixedText, true, true, 5, "FFF2CC"));
+                    formDataRow.Append(CreateCell(onlineText, true, true, 5, "F4CCCC"));
                     table.Append(formDataRow);
 
                     // --- РАЗДЕЛ 6: Траектория ---
@@ -215,7 +224,6 @@ namespace AIFeedback.Services.Report
             return tr;
         }
 
-        // ИСПРАВЛЕНИЕ ЗДЕСЬ: Метод теперь правильно считывает данные из словаря
         private TableRow CreateMetricRow(string name, string key, double avgScore, string note, Dictionary<string, int[]> distMap)
         {
             TableRow tr = new TableRow();
@@ -231,7 +239,7 @@ namespace AIFeedback.Services.Report
             {
                 string color = (i + 1) >= 9 ? "D9EAD3" : ((i + 1) >= 5 ? "FFF2CC" : "");
                 int val = scores.Length > i ? scores[i] : 0;
-                tr.Append(CreateCell(val.ToString(), false, true, 1, color)); // ТУТ ВЫВОДИТСЯ РЕАЛЬНАЯ ЦИФРА
+                tr.Append(CreateCell(val.ToString(), false, true, 1, color)); // Выводим цифру вместо "-"
             }
 
             tr.Append(CreateCell(avgScore.ToString("F1"), true, true, 1));

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System;
 using System.IO;
 using Microsoft.AspNetCore.Http;
-using System.Text.RegularExpressions;   // Добавлено для метода очистки имен
+using System.Text.RegularExpressions;
 
 namespace AIFeedback.Controllers
 {
@@ -47,8 +47,8 @@ namespace AIFeedback.Controllers
             // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
             // ==========================================
 
-            // ПЕРЕДАЕМ uploadFile.FileName В ПАРСЕР
-            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
+            // ПЕРЕДАЕМ uploadFile.FileName В ПАРСЕР И ПРИНИМАЕМ ДАННЫЕ О ФОРМАТЕ ОБУЧЕНИЯ
+            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson, fOffline, fMixed, fOnline) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
 
             double avgUtility = numericAvgs.GetValueOrDefault("Usefulness", 0);
             double avgPractice = numericAvgs.GetValueOrDefault("Practicality", 0);
@@ -158,7 +158,8 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
             // ==========================================
             var analysisRecord = new AnalysisResult
             {
-                SessionName = !string.IsNullOrEmpty(progName) ? progName : "Анализ анкет КУ",
+                // ИСПРАВЛЕНИЕ ХАРДКОДА: Используем progName вместо "Анализ анкет КУ"
+                SessionName = !string.IsNullOrEmpty(progName) ? progName : "Аналитическая справка",
                 ProgramName = progName,
                 ListenerCount = listenerCount,
                 CreatedAt = DateTime.UtcNow,
@@ -173,6 +174,11 @@ Use EXACTLY this JSON structure, filling in the text values in Russian:
                 Dist1to3 = d1to3,
                 Dist4to7 = d4to7,
                 Dist8to10 = d8to10,
+
+                // ИСПРАВЛЕНИЕ: СОХРАНЯЕМ ФОРМАТЫ ОБУЧЕНИЯ
+                FormatOfflineCount = fOffline,
+                FormatMixedCount = fMixed,
+                FormatOnlineCount = fOnline,
 
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),

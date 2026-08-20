@@ -56,5 +56,8 @@ namespace AIFeedback.Data
         public string ScoresDistributionJson { get; set; }
         public string? TrendLabelsJson { get; set; }
         public string? TrendValuesJson { get; set; }
+        public int FormatOfflineCount { get; set; }
+        public int FormatMixedCount { get; set; }
+        public int FormatOnlineCount { get; set; }
     }
 }

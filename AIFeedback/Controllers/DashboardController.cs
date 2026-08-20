@@ -71,6 +71,16 @@ namespace AIFeedback.Controllers
                 range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
             }
 
+            // Определяем доминирующую форму обучения для шапки
+            string dominantFormat = "Определяется на основе анкет";
+            int maxFormat = Math.Max(result.FormatOfflineCount, Math.Max(result.FormatMixedCount, result.FormatOnlineCount));
+            if (maxFormat > 0)
+            {
+                if (maxFormat == result.FormatOfflineCount) dominantFormat = "Очная в аудиториях КУ";
+                else if (maxFormat == result.FormatMixedCount) dominantFormat = "Смешанное обучение (очно и дистанционно)";
+                else dominantFormat = "С применением дистанционных образовательных технологий";
+            }
+
             ws.Cell("A3").Value = "Общая информация о программе";
             ApplyHeaderStyle(ws.Range("A3:M3"));
 
@@ -79,7 +89,7 @@ namespace AIFeedback.Controllers
             ws.Cell("A5").Value = "Период обучения";
             ws.Range("B5:M5").Merge().Value = result.CreatedAt.ToString("dd.MM.yyyy");
             ws.Cell("A6").Value = "Форма обучения";
-            ws.Range("B6:M6").Merge().Value = "Очная с применением дистанционных образовательных технологий";
+            ws.Range("B6:M6").Merge().Value = dominantFormat;
             ws.Cell("A7").Value = "Количество слушателей, принявших участие в опросе";
             ws.Range("B7:M7").Merge().Value = $"{result.ListenerCount} слушателей";
             ws.Cell("A8").Value = "Преподаватели программы";
@@ -112,7 +122,6 @@ namespace AIFeedback.Controllers
             ws.Range(r, 1, r, 13).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
             r++;
 
-            // ИСПРАВЛЕНИЕ ДЛЯ EXCEL: Десериализация распределения оценок
             Dictionary<string, int[]> distMap = null;
             try
             {
@@ -131,7 +140,6 @@ namespace AIFeedback.Controllers
                 ws.Cell(rowNum, 1).Value = name;
                 ws.Cell(rowNum, 1).Style.Font.SetBold();
 
-                // Заполняем ячейки 1-10 реальными данными из distMap
                 for (int i = 0; i < 10; i++)
                 {
                     int val = 0;
@@ -205,7 +213,7 @@ namespace AIFeedback.Controllers
             ws.Range(r - 3, 1, r - 1, 13).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             ws.Range(r - 3, 1, r - 1, 13).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            // БЛОК: ПРЕДПОЧТИТЕЛЬНАЯ ФОРМА ОБУЧЕНИЯ (Новое!)
+            // БЛОК: ПРЕДПОЧТИТЕЛЬНАЯ ФОРМА ОБУЧЕНИЯ
             r++;
             ws.Cell(r, 1).Value = "Предпочтительная форма обучения";
             ApplyHeaderStyle(ws.Range(r, 1, r, 13));
@@ -219,12 +227,17 @@ namespace AIFeedback.Controllers
             ws.Range(r, 10, r, 13).Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Alignment.SetWrapText(true);
             r++;
 
-            ws.Cell(r, 1).Value = "Определяется на основе анкет"; 
-            ws.Range(r, 1, r, 4).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-            ws.Cell(r, 5).Value = "Определяется на основе анкет";
-            ws.Range(r, 5, r, 9).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-            ws.Cell(r, 10).Value = "Определяется на основе анкет";
-            ws.Range(r, 10, r, 13).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            int totalFormatVotes = result.FormatOfflineCount + result.FormatMixedCount + result.FormatOnlineCount;
+            string offlineText = totalFormatVotes > 0 ? $"{Math.Round((double)result.FormatOfflineCount / totalFormatVotes * 100)}% ({result.FormatOfflineCount} чел.)" : "Н/Д";
+            string mixedText = totalFormatVotes > 0 ? $"{Math.Round((double)result.FormatMixedCount / totalFormatVotes * 100)}% ({result.FormatMixedCount} чел.)" : "Н/Д";
+            string onlineText = totalFormatVotes > 0 ? $"{Math.Round((double)result.FormatOnlineCount / totalFormatVotes * 100)}% ({result.FormatOnlineCount} чел.)" : "Н/Д";
+
+            ws.Cell(r, 1).Value = offlineText;
+            ws.Range(r, 1, r, 4).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Fill.SetBackgroundColor(XLColor.FromHtml("#D9EAD3"));
+            ws.Cell(r, 5).Value = mixedText;
+            ws.Range(r, 5, r, 9).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Fill.SetBackgroundColor(XLColor.FromHtml("#FFF2CC"));
+            ws.Cell(r, 10).Value = onlineText;
+            ws.Range(r, 10, r, 13).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Fill.SetBackgroundColor(XLColor.FromHtml("#F4CCCC"));
             r++;
 
             ws.Range(r - 3, 1, r - 1, 13).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
@@ -270,7 +283,6 @@ namespace AIFeedback.Controllers
         }
 
         [HttpGet]
-        [HttpGet]
         public async Task<IActionResult> DownloadWord(int id)
         {
             try
@@ -288,7 +300,6 @@ namespace AIFeedback.Controllers
                         string.IsNullOrWhiteSpace(result.RecommendationsJson) ? "[]" : result.RecommendationsJson) ?? new List<AIFeedback.Models.DTOs.Conclusion>()
                 };
 
-                // ИСПРАВЛЕНИЕ ДЛЯ WORD: Десериализация и передача ScoresDistribution
                 Dictionary<string, int[]> distMap = null;
                 try
                 {
@@ -309,7 +320,11 @@ namespace AIFeedback.Controllers
                     EngagementYesPercent = result.EngagementYesPercent,
                     OverallSatisfaction = result.OverallSatisfaction,
                     AiAnalysis = aiDto,
-                    ScoresDistribution = distMap ?? new Dictionary<string, int[]>()
+                    ScoresDistribution = distMap ?? new Dictionary<string, int[]>(),
+
+                    FormatOfflineCount = result.FormatOfflineCount,
+                    FormatMixedCount = result.FormatMixedCount,
+                    FormatOnlineCount = result.FormatOnlineCount
                 };
 
                 Stream reportStream = await _reportService.GenerateWordReportAsync(wordData);

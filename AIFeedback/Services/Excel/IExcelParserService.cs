@@ -13,8 +13,7 @@ namespace AIFeedback.Services.Excel
 {
     public interface IExcelParserService
     {
-        // ДОБАВИЛИ string fileName в сигнатуру
-        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream, string fileName);
+        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson, int FormatOffline, int FormatMixed, int FormatOnline)> ParseAsync(Stream fileStream, string fileName);
         Task<double> ParseHistoryFileAsync(Stream fileStream);
     }
 
@@ -27,8 +26,7 @@ namespace AIFeedback.Services.Excel
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // ОБЯЗАТЕЛЬНО ДОБАВЬ string fileName СЮДА ЖЕ:
-        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson)> ParseAsync(Stream fileStream, string fileName)
+        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson, int FormatOffline, int FormatMixed, int FormatOnline)> ParseAsync(Stream fileStream, string fileName)
         {
             return await Task.Run(() =>
             {
@@ -40,6 +38,7 @@ namespace AIFeedback.Services.Excel
                 }
 
                 var allComments = new List<string>();
+
                 var usefulnessList = new List<double>();
                 var practicalityList = new List<double>();
                 var accessibilityList = new List<double>();
@@ -59,15 +58,19 @@ namespace AIFeedback.Services.Excel
                 int engagedCount = 0;
                 int totalEngagementAnswers = 0;
 
+                int formatOffline = 0;
+                int formatMixed = 0;
+                int formatOnline = 0;
+
                 try
                 {
                     using var workbook = new XLWorkbook(fileStream);
                     var worksheet = workbook.Worksheet(1);
 
                     var headerRow = worksheet.FirstRowUsed();
-                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}");
+                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}", 0, 0, 0);
 
-                    int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1, engagementCol = -1;
+                    int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1, engagementCol = -1, formatCol = -1;
                     var textColumns = new List<int>();
 
                     foreach (var cell in headerRow.CellsUsed())
@@ -82,6 +85,7 @@ namespace AIFeedback.Services.Excel
                         else if (header.Contains("доступност") && (header.Contains("10") || header.Contains("шкале"))) accessibilityCol = colIndex;
                         else if (header.Contains("взаимодействи") && (header.Contains("10") || header.Contains("шкале"))) interactionCol = colIndex;
                         else if (header.Contains("отстран") || header.Contains("потерю интерес")) engagementCol = colIndex;
+                        else if (header.Contains("выбрать формат обучения")) formatCol = colIndex;
 
                         if (!header.Contains("ф.и.о.") && !header.Contains("место вашей работы") && !header.Contains("категории относится"))
                         {
@@ -90,7 +94,7 @@ namespace AIFeedback.Services.Excel
                     }
 
                     var range = worksheet.RangeUsed();
-                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}");
+                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}", 0, 0, 0);
 
                     var rows = range.RowsUsed().Skip(1).ToList();
                     listenerCount = rows.Count;
@@ -99,7 +103,7 @@ namespace AIFeedback.Services.Excel
                     {
                         var userScores = new List<double>();
 
-                        // ИСПРАВЛЕНИЕ: Читаем как double и аккуратно округляем для словаря
+                        // Читаем как double и аккуратно округляем для словаря
                         if (usefulnessCol != -1 && TryParseDouble(row.Cell(usefulnessCol).Value.ToString(), out double u))
                         {
                             usefulnessList.Add(u); userScores.Add(u);
@@ -140,6 +144,18 @@ namespace AIFeedback.Services.Excel
                             {
                                 totalEngagementAnswers++;
                                 if (detachmentAnswer.Contains("нет")) engagedCount++;
+                            }
+                        }
+
+                        // ПРЕДПОЧТИТЕЛЬНЫЙ ФОРМАТ ОБУЧЕНИЯ
+                        if (formatCol != -1)
+                        {
+                            var formatAnswer = row.Cell(formatCol).Value.ToString()?.Trim().ToLower();
+                            if (!string.IsNullOrWhiteSpace(formatAnswer))
+                            {
+                                if (formatAnswer.Contains("смешанное")) formatMixed++;
+                                else if (formatAnswer.Contains("дистанционн")) formatOnline++;
+                                else if (formatAnswer.Contains("очно") || formatAnswer.Contains("аудитори")) formatOffline++;
                             }
                         }
 
@@ -195,7 +211,7 @@ namespace AIFeedback.Services.Excel
                 string matrixJson = JsonSerializer.Serialize(matrix);
                 string distJson = JsonSerializer.Serialize(scoresDist);
 
-                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10, matrixJson, distJson);
+                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10, matrixJson, distJson, formatOffline, formatMixed, formatOnline);
             });
         }
 
@@ -244,13 +260,11 @@ namespace AIFeedback.Services.Excel
             });
         }
 
-        // ИСПРАВЛЕННЫЙ МЕТОД ПАРСИНГА
         private bool TryParseDouble(string? value, out double result)
         {
             result = 0;
             if (string.IsNullOrWhiteSpace(value)) return false;
 
-            // Извлекаем только цифры, точки и запятые
             var match = Regex.Match(value.Trim(), @"\d+([.,]\d+)?");
             if (match.Success)
             {
@@ -267,7 +281,6 @@ namespace AIFeedback.Services.Excel
             return false;
         }
 
-        // Ограничитель и округлитель для массива (от 1 до 10)
         private int ClampScore(double score)
         {
             int rounded = (int)Math.Round(score, MidpointRounding.AwayFromZero);
