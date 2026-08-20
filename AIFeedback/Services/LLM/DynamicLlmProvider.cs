@@ -53,6 +53,7 @@ namespace AIFeedback.Services.LLM
                     new { role = "user", content = userPrompt }
                 },
                 temperature = temperature,
+                max_tokens = 2500, // <--- ДАЕМ РАЗРЕШЕНИЕ НА БОЛЬШОЙ ТЕКСТ
                 stream = false
             };
 

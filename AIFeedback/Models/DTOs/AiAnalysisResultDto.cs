@@ -4,6 +4,23 @@ namespace AIFeedback.Models.DTOs
 {
     public class AiAnalysisResultDto
     {
+        // 1) общая информация о программе
+        public string GeneralInfo { get; set; }
+
+        // 2) ключевые критерии
+        public string KeyCriteria { get; set; }
+
+        // 3) предложения слушателей
+        public string Suggestions { get; set; }
+
+        // 4) траектория изменения программы
+        public string Trajectory { get; set; }
+
+        // 3–7 обоснованных выводов со статистикой
+        //public List<string> Conclusions { get; set; }
+
+
+
         [JsonPropertyName("Sentiment")]
         public SentimentStats Sentiment { get; set; } = new SentimentStats();
 
