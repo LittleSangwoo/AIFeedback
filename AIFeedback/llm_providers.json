@@ -32,7 +32,7 @@
         "Name": "ollama local1",
         "IsLocal": true,
         "BaseUrl": "http://localhost:11434/v1/chat/completions",
-        "Model": "my-llama",
+        "Model": "llama3",
         "ApiKey": "",
         "Scope": null
     },
