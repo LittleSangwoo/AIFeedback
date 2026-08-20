@@ -21,18 +21,8 @@ namespace AIFeedback.Services
             string rawResponse = string.Empty;
             try
             {
-                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, providerName: providerName);
-
-                //if (string.IsNullOrWhiteSpace(rawResponse))
-                //{
-                //    _logger.LogWarning("LLM вернула пустой ответ. Переходим на безопасный фолбэк-режим.");
-                //    return GetFallbackAnalysisResult();
-                //}
-
-                // --- ДОБАВЛЕНО ДЛЯ ДЕБАГА ---
-                _logger.LogWarning("===== СЫРОЙ ОТВЕТ ОТ ИИ =====");
-                _logger.LogWarning(rawResponse);
-                _logger.LogWarning("=============================");
+                // Передаем providerName, а всю магию переключения провайдер делает сам
+                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, 0.0, providerName);
 
                 string cleanedJson = CleanJson(rawResponse);
 
@@ -45,11 +35,8 @@ namespace AIFeedback.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка вызова LLM. Активирован защитный режим. Сырой ответ был: '{RawResponse}'", rawResponse);
-                // Защитный механизм для устойчивости демо на чемпионате (Критерий 3.3)
-                // УДАЛИ ИЛИ ЗАКОММЕНТИРУЙ: return GetFallbackAnalysisResult();
-
-                throw; // Честно пробрасываем ошибку дальше
+                _logger.LogError(ex, "Ошибка вызова LLM. Сырой ответ был: '{RawResponse}'", rawResponse);
+                throw;
             }
         }
 
