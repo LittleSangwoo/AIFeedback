@@ -43,27 +43,26 @@ namespace AIFeedback.Controllers
                 return BadRequest("Основной файл не выбран");
             }
 
-            // ==========================================
-            // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
-            // ==========================================
+            //  ПАРСИНГ ОСНОВНОГО ФАЙЛА
 
             // ПЕРЕДАЕМ uploadFile.FileName В ПАРСЕР И ПРИНИМАЕМ ДАННЫЕ О ФОРМАТЕ ОБУЧЕНИЯ
-            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson, fOffline, fMixed, fOnline) = await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
+            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson, fOffline, fMixed, fOnline, eCount, dCount) =
+                await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
 
             double avgUtility = numericAvgs.GetValueOrDefault("Usefulness", 0);
             double avgPractice = numericAvgs.GetValueOrDefault("Practicality", 0);
             double avgAccessibility = numericAvgs.GetValueOrDefault("Accessibility", 0);
             double avgInteraction = numericAvgs.GetValueOrDefault("Interaction", 0);
-            double avgEngagement = numericAvgs.GetValueOrDefault("Engagement", 0);
+
+            // Считаем точный процент вовлеченности
+            int totalE = eCount + dCount;
+            int engPct = totalE > 0 ? (int)Math.Round((double)eCount / totalE * 100) : 0;
 
             // Общая удовлетворенность текущего потока
             double overallSatisfaction = (avgUtility + avgPractice + avgAccessibility + avgInteraction) / 4.0;
 
             string rawComments = string.Join("\n", allComments);
 
-            // ==========================================
-            // 2. ОБРАБОТКА ИСТОРИЧЕСКИХ ФАЙЛОВ (ТРЕНД С ГРУППИРОВКОЙ)
-            // ==========================================
             var trendLabels = new List<string>();
             var trendValues = new List<double>();
 
@@ -77,14 +76,11 @@ namespace AIFeedback.Controllers
                     if (file.Length > 0)
                     {
                         using var histStream = file.OpenReadStream();
-                        // Вызываем наш быстрый метод (только цифры)
                         double histScore = await _excelParserService.ParseHistoryFileAsync(histStream);
 
-                        // Получаем имя без расширения и отрезаем мусорные приписки
                         string rawName = Path.GetFileNameWithoutExtension(file.FileName);
                         string baseName = CleanFileName(rawName);
 
-                        // Добавляем балл в группу этого потока
                         if (!groupedHistory.ContainsKey(baseName))
                         {
                             groupedHistory[baseName] = new List<double>();
@@ -103,35 +99,52 @@ namespace AIFeedback.Controllers
                 trendValues.AddRange(historyData.Select(x => x.Score));
             }
 
-            // Добавляем результаты текущего (основного) файла в самый конец тренда
+            // Добавляем результаты текущего файла в самый конец тренда
             trendLabels.Add("Текущий поток");
             trendValues.Add(Math.Round(overallSatisfaction, 1));
 
-            // ==========================================
-            // 3. ПРОМПТЫ И ВЫЗОВ ИИ
-            // ==========================================
-            string systemPrompt = @"Ты — AI-аналитик. Проанализируй отзывы и верни результат СТРОГО в формате JSON. Не пиши никакого текста до или после JSON.
+            // ПРОМПТЫ И ВЫЗОВ ИИ
+            string systemPrompt = @"Ты — профессиональный AI-аналитик образовательных программ. Твоя задача проанализировать сырые отзывы и метрики, и выдать детальный профессиональный отчет СТРОГО в формате JSON.
+Не используй markdown (никаких ```json). 
+Опирайся на реальные цифры и комментарии. Структура JSON должна быть РОВНО такой:
 
-Структура JSON должна быть ровно такой:
 {
-  ""GeneralInfo"": ""Общая информация об отзывах и настроении."",
-  ""KeyCriteria"": ""Главные плюсы и минусы."",
-  ""Suggestions"": ""Что предлагают улучшить."",
-  ""Trajectory"": ""Что нужно сделать в будущем."",
+  ""Sentiment"": {
+    ""PositivePercent"": 70.0,
+    ""NeutralPercent"": 20.0,
+    ""NegativePercent"": 10.0
+  },
+  ""TopTopics"": [
+    {
+      ""Name"": ""Название темы"",
+      ""MentionsCount"": 5,
+      ""IsRelevant"": true
+    }
+  ],
   ""Conclusions"": [
     {
-      ""Description"": ""Текст конкретного вывода"",
-      ""Action"": ""Что нужно сделать для исправления"",
-      ""DataProof"": ""Цифры или проценты из отзывов""
+      ""Priority"": ""High"",
+      ""Action"": ""Что нужно сделать"",
+      ""DataProof"": ""Обоснование на основе цифр""
     }
-  ]
-}
-}
-
-ПРАВИЛА ДЛЯ Conclusions:
-- Сгенерируй от 3 до 7 выводов.
-- Поле DataProof обязательно должно содержать цифры или проценты.
-- Верни ТОЛЬКО валидный JSON без markdown-разметки (без ```json).";
+  ],
+  ""MetricsNotes"": {
+    ""Usefulness"": ""Напиши текст примечания по полезности. Пример: 'X чел. (Y%) высоко оценили полезность программы. Наиболее актуальными для выполнения обязанностей являются: - тема 1 (N чел., M%); - тема 2...'"",
+    ""Practicality"": ""Напиши текст примечания по практике. Пример: 'X чел. (Y%) высоко оценили практику. Однако N чел. указали на нехватку практики по темам: - тема 1...'"",
+    ""Accessibility"": ""Напиши текст примечания по доступности и логике изложения. Пример: 'Замечаний к логике изложения нет.'"",
+    ""Interaction"": ""Напиши текст примечания по работе команды."",
+    ""Engagement"": ""Напиши подробный текст по вовлеченности (что могло бы повлиять на повышение интереса, почему люди отстранялись).""
+  },
+  ""UnnecessaryTopics"": ""Сгенерируй нумерованный список неактуальных тем (1, 2, 3...). Если их нет, напиши 'Неактуальных тем не выявлено.'"",
+  ""TopicsToAdd"": ""Сгенерируй нумерованный список тем для добавления (1, 2, 3...). Если их нет, напиши 'Дополнений не зафиксировано.'"",
+  ""Trajectory"": {
+    ""Relevance"": ""Вывод о потребности в реализации. Пример: 'Программа актуальна и востребована, высокая потребность в дальнейшей реализации.'"",
+    ""Selection"": ""Вывод о корректировке отбора."",
+    ""Additions"": ""Вывод о дополнении программы (на основе отзывов)."",
+    ""Hours"": ""Вывод об изменении количества часов."",
+    ""Format"": ""Вывод об изменении формы обучения.""
+  }
+}";
 
             // Если текст отзывов длиннее 10000 символов, берем только начало
             if (rawComments.Length > 10000)
@@ -139,16 +152,9 @@ namespace AIFeedback.Controllers
                 rawComments = rawComments.Substring(0, 10000) + "... [ДАННЫЕ ОБРЕЗАНЫ ИЗ-ЗА ЛИМИТОВ]";
             }
 
-            string userPrompt = $@"Вот массив отзывов слушателей для анализа:
-{rawComments}
-Внимательно прочитай каждый отзыв, посчитай частоту упоминания проблем и составь JSON-отчет строго по инструкции.";
+            string userPrompt = $"Слушателей: {listenerCount}. Средние баллы: Полезность {avgUtility}, Практика {avgPractice}, Доступность {avgAccessibility}, Взаимодействие {avgInteraction}. Вовлечены: {eCount} чел ({engPct}%), Отстранены: {dCount} чел.\nТекстовые отзывы:\n{rawComments}";
 
-            AiAnalysisResultDto analysisResult = new AiAnalysisResultDto
-            {
-                Sentiment = new SentimentStats { PositivePercent = 0, NeutralPercent = 0, NegativePercent = 0 },
-                TopTopics = new List<Topic>(),
-                Conclusions = new List<Conclusion>()
-            };
+            AiAnalysisResultDto analysisResult = new AiAnalysisResultDto();
 
             try
             {
@@ -157,15 +163,13 @@ namespace AIFeedback.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Предупреждение: ИИ-анализ пропущен: {ex.Message}");
-                TempData["AiWarning"] = "Связь с нейросетью временно недоступна (ошибка API-ключа). Дашборд построен только на основе математических расчетов.";
+                TempData["AiWarning"] = "Связь с нейросетью временно недоступна. Дашборд построен только на основе расчетов.";
             }
 
-            // ==========================================
-            // 4. СОХРАНЕНИЕ В БАЗУ ДАННЫХ
-            // ==========================================
+            //СОХРАНЕНИЕ В БАЗУ ДАННЫХ
+
             var analysisRecord = new AnalysisResult
             {
-                // ИСПРАВЛЕНИЕ ХАРДКОДА: Используем progName вместо "Анализ анкет КУ"
                 SessionName = !string.IsNullOrEmpty(progName) ? progName : "Аналитическая справка",
                 ProgramName = progName,
                 ListenerCount = listenerCount,
@@ -176,30 +180,29 @@ namespace AIFeedback.Controllers
                 AvailabilityAvg = avgAccessibility,
                 InteractionAvg = avgInteraction,
                 OverallSatisfaction = overallSatisfaction,
-                EngagementYesPercent = (int)avgEngagement,
+                EngagementYesPercent = engPct,
 
                 Dist1to3 = d1to3,
                 Dist4to7 = d4to7,
                 Dist8to10 = d8to10,
 
-                // ИСПРАВЛЕНИЕ: СОХРАНЯЕМ ФОРМАТЫ ОБУЧЕНИЯ
                 FormatOfflineCount = fOffline,
                 FormatMixedCount = fMixed,
                 FormatOnlineCount = fOnline,
 
+                EngagedCount = eCount,
+                DetachedCount = dCount,
+
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),
                 RecommendationsJson = JsonSerializer.Serialize(analysisResult.Conclusions),
+
+                // Сохраняем новый расширенный ответ ии 
                 AiInsightsJson = JsonSerializer.Serialize(analysisResult),
 
-                // Сохраняем сериализованные данные тренда
                 TrendLabelsJson = JsonSerializer.Serialize(trendLabels),
                 TrendValuesJson = JsonSerializer.Serialize(trendValues),
-
-                // СОХРАНЯЕМ МАТРИЦУ КОРРЕЛЯЦИЙ В БД
                 CorrelationMatrixJson = matrixJson,
-
-                // ОБНОВЛЕНИЕ: СОХРАНЯЕМ РАСПРЕДЕЛЕНИЕ ОЦЕНОК В БД
                 ScoresDistributionJson = distJson
             };
 
@@ -208,30 +211,24 @@ namespace AIFeedback.Controllers
             return RedirectToAction("Details", "Dashboard", new { id = analysisRecord.Id });
         }
 
-        // ==========================================
-        // ВСПОМОГАТЕЛЬНЫЙ МЕТОД: Очистка имен файлов
-        // ==========================================
+        // Очистка имен файлов
         private string CleanFileName(string fileName)
         {
             if (string.IsNullOrWhiteSpace(fileName)) return "Неизвестная дата";
 
-            // Ищем полный диапазон дат в формате ДД.ММ-ДД.ММ или ДД.ММ.ГГГГ-ДД.ММ.ГГГГ
             var dateMatch = Regex.Match(fileName, @"\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?\s*[-–—]\s*\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?");
 
             if (dateMatch.Success)
             {
-                // Возвращаем найденный диапазон, красиво заменяя разделители на тире с пробелами
                 return dateMatch.Value.Replace("_", ".").Replace("-", " — ").Replace("–", " — ").Replace("—", " — ");
             }
 
-            // Если диапазона дат нет, пробуем найти хотя бы одну дату
             var singleDateMatch = Regex.Match(fileName, @"\d{2}[.\-_]\d{2}(?:[.\-_]\d{2,4})?");
             if (singleDateMatch.Success)
             {
                 return singleDateMatch.Value.Replace("_", ".");
             }
 
-            // Если дат вообще нет — чистим от стандартного мусора
             string pattern = @"(?i)(_v\d+|-копия|\(\d+\)|_доп.*|_часть.*|_финал|\s+копия).*$";
             string cleanName = Regex.Replace(fileName, pattern, "");
             return cleanName.Trim(' ', '_', '-');

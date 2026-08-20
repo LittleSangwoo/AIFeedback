@@ -1,38 +1,315 @@
-/* ==========================================
+/* =======================================================
    ГЛОБАЛЬНЫЕ ТЕМЫ (СВЕТЛАЯ И ТЕМНАЯ)
-   ========================================== */
+   ======================================================= */
 :root {
-    /* СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) */
+    /* СВЕТЛАЯ ТЕМА */
     --bg-color: #f4f6f8;
     --text-color: #212529;
-    --text-muted: #495057; /* Было слишком светлым, сделал плотнее */
+    --text-muted: #495057;
     --card-bg: #ffffff;
     --card-border: #dce1e6;
     --accent-color: #004d99;
     --accent-hover: #003366;
-    --navbar-bg: #ffffff;
-    --nav-text: #333;
+    --navbar-bg: rgba(255, 255, 255, 0.95);
+    --nav-text: #333333;
     --input-bg: #ffffff;
     --input-border: #ced4da;
+    --export-label-bg: #e9ecef;
+    --export-label-text: #495057;
+    --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 [data-theme="dark"] {
     /* ТЕМНАЯ ТЕМА */
     --bg-color: #121212;
-    --text-color: #f8f9fa; /* Сделал текст ярче (почти белый) */
-    --text-muted: #adb5bd; /* Сделал подписи светлее, чтобы не тонули в черном */
+    --text-color: #f8f9fa;
+    --text-muted: #adb5bd; /* Светло-серый для темной темы */
     --card-bg: #1e1e1e;
     --card-border: #333333;
     --accent-color: #66b2ff;
     --accent-hover: #99ccff;
-    --navbar-bg: #1a1a1a;
+    --navbar-bg: rgba(26, 26, 26, 0.95);
     --nav-text: #e0e0e0;
-    --input-bg: #2b2b2b; /* Поля ввода теперь чуть светлее фона */
+    --input-bg: #2b2b2b;
     --input-border: #444444;
+    --export-label-bg: #2b2b2b;
+    --export-label-text: #adb5bd;
+    --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
     transition: background-color 0.3s, color 0.3s;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+}
+
+/* =======================================================
+   ИСПРАВЛЕНИЕ ПЛЕЙСХОЛДЕРОВ И ТЕКСТА
+   ======================================================= */
+/* 1. Заставляем стандартный класс Bootstrap слушать нашу тему */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* 2. Делаем подсказки в полях ввода видимыми в темной теме */
+.form-control-adaptive::placeholder,
+.form-select-adaptive::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7 !important;
+}
+
+/* =======================================================
+   ОСНОВНЫЕ БЛОКИ 
+   ======================================================= */
+.card, .official-card, .stat-card, .chart-card, .ai-insights-card {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    box-shadow: var(--shadow-subtle) !important;
+}
+
+/* =======================================================
+   ШАПКА (НАВИГАЦИЯ)
+   ======================================================= */
+.navbar-custom {
+    background-color: var(--navbar-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: var(--shadow-subtle);
+    padding: 14px 0;
+    transition: all 0.3s ease;
+}
+
+.navbar-scrolled {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    padding: 10px 0 !important;
+}
+
+/* Зона 1: Брендинг */
+.brand-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.brand-title {
+    color: var(--accent-color);
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.brand-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-left: 2px solid var(--card-border);
+    padding-left: 10px;
+    margin-left: 4px;
+}
+
+/* Зона 2: Панель экспорта (Капсула) */
+.export-capsule {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: stretch;
+    height: 42px;
+    box-shadow: var(--shadow-subtle);
+    overflow: hidden;
+}
+
+.export-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: var(--export-label-text);
+    padding: 0 24px;
+    text-transform: uppercase;
+    background: var(--export-label-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--card-border);
+}
+
+.btn-premium-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: none;
+    min-width: 110px;
+}
+
+.btn-export-excel {
+    color: #198754;
+}
+
+    .btn-export-excel:hover {
+        background-color: rgba(25, 135, 84, 0.12);
+        color: #157347;
+    }
+
+.btn-export-word {
+    color: #0d6efd;
+}
+
+    .btn-export-word:hover {
+        background-color: rgba(13, 110, 253, 0.12);
+        color: #0b5ed7;
+    }
+
+.btn-export-pdf {
+    color: #dc3545;
+}
+
+    .btn-export-pdf:hover {
+        background-color: rgba(220, 53, 69, 0.12);
+        color: #bb2d3b;
+    }
+
+.export-divider {
+    width: 1px;
+    height: 100%;
+    background-color: var(--card-border);
+    opacity: 0.7;
+}
+
+/* Зона 3: Утилиты */
+.utilities-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-utility {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid var(--card-border);
+    background: transparent;
+    color: var(--nav-text);
+    transition: all 0.2s;
+    text-decoration: none;
+    height: 42px;
+}
+
+    .btn-utility:hover {
+        background: var(--export-label-bg);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
+
+.btn-header-back {
+    background: rgba(124, 77, 255, 0.08);
+    border-color: rgba(179, 136, 255, 0.3);
+    color: var(--accent-color);
+}
+
+    .btn-header-back:hover {
+        background: rgba(124, 77, 255, 0.15);
+        color: var(--text-color);
+    }
+
+/* =======================================================
+   МОДАЛЬНОЕ ОКНО (СПРАВКА)
+   ======================================================= */
+.help-modal-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+}
+
+    .help-modal-content .modal-header, .help-modal-content .modal-footer {
+        border-color: var(--card-border);
+    }
+
+.help-intro {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+.help-accordion .accordion-item {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    margin-bottom: 8px;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.help-accordion .accordion-button {
+    background: transparent;
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+    gap: 10px;
+    box-shadow: none !important;
+}
+
+    .help-accordion .accordion-button:not(.collapsed) {
+        background: rgba(102, 178, 255, 0.1);
+        color: var(--accent-color);
+    }
+
+.help-accordion .accordion-body {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    padding-top: 4px;
+}
+
+    .help-accordion .accordion-body ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+
+    .help-accordion .accordion-body li {
+        margin-bottom: 4px;
+    }
+
+.help-section-icon {
+    color: var(--accent-color);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.btn-help-support {
+    background: var(--accent-color);
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+    .btn-help-support:hover {
+        opacity: 0.88;
+        color: #ffffff;
+    }
+
+/* Прячем шапку при печати */
+@media print {
+    .navbar {
+        display: none !important;
+    }
 }

@@ -3,26 +3,83 @@
 }
 
 <style>
-    /* Твой строгий корпоративный стиль */
+    /* Локальные стили, опирающиеся на глобальные переменные из site.css */
     .hero-title { color: var(--text-color); font-weight: 700; letter-spacing: -0.5px; }
-    .hero-subtitle { color: var(--text-color); opacity: 0.85; font-weight: 500; }
-    .official-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); transition: background-color 0.3s, border-color 0.3s; }
+    .hero-subtitle { color: var(--text-color); opacity: 0.85; font-weight: 600; }
+    
     .form-label { color: var(--text-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
     .form-hint { color: var(--text-color); opacity: 0.65; font-size: 0.85rem; margin-top: 6px; }
-    .form-control-adaptive, .form-select-adaptive { background-color: var(--input-bg) !important; border: 1px solid var(--input-border) !important; color: var(--text-color) !important; border-radius: 6px; transition: all 0.2s ease; }
-    .form-control-adaptive:focus, .form-select-adaptive:focus { border-color: var(--accent-color) !important; box-shadow: 0 0 0 3px rgba(0, 77, 153, 0.15) !important; }
-    .btn-official { background-color: var(--accent-color); color: #ffffff; border: none; font-weight: 600; border-radius: 6px; letter-spacing: 0.5px; transition: all 0.2s ease; padding: 10px 20px;}
-    .btn-official:hover { background-color: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    
+    /* Стили для полей ввода (input) */
+    .form-control-adaptive, .form-select-adaptive { 
+        background-color: var(--input-bg) !important; 
+        border: 1px solid var(--input-border) !important; 
+        color: var(--text-color) !important; 
+        border-radius: 6px; 
+        transition: all 0.2s ease; 
+        padding: 10px 12px;
+    }
+    
+    .form-control-adaptive:focus, .form-select-adaptive:focus { 
+        border-color: var(--accent-color) !important; 
+        box-shadow: 0 0 0 3px rgba(0, 77, 153, 0.15) !important; 
+        outline: none;
+    }
+    
+    /* Стили для кнопок */
+    .btn-official { 
+        background-color: var(--accent-color); 
+        color: #ffffff; 
+        border: none; 
+        font-weight: 600; 
+        border-radius: 6px; 
+        letter-spacing: 0.5px; 
+        transition: all 0.2s ease; 
+        padding: 10px 20px;
+    }
+    .btn-official:hover { 
+        background-color: var(--accent-hover); 
+        transform: translateY(-1px); 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+        color: #ffffff;
+    }
+    
+    .btn-secondary-adaptive {
+        background-color: var(--export-label-bg);
+        color: var(--text-color);
+        border: 1px solid var(--card-border);
+        font-weight: 600; 
+        border-radius: 6px; 
+        transition: all 0.2s ease; 
+        padding: 10px 20px;
+    }
+    .btn-secondary-adaptive:hover {
+        background-color: var(--card-border);
+        color: var(--text-color);
+    }
+
+    /* Карточки провайдеров в списке */
+    .provider-item-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        transition: border-color 0.2s;
+    }
+    .provider-item-card:hover {
+        border-color: var(--accent-color);
+    }
+
     .hidden { display: none !important; }
 </style>
 
 <div class="container py-5" style="max-width: 1200px;">
     <h2 class="hero-title mb-1">Редактор ИИ Провайдеров</h2>
-    <p class="hero-subtitle mb-4">Настройка шлюзов, ключей и локальных моделей.</p>
+    <p class="hero-subtitle fw-normal mb-4 text-muted">Настройка шлюзов, ключей и локальных моделей.</p>
 
     <div class="row g-4">
         <div class="col-lg-5">
-            <div class="official-card p-4 h-100">
+            <!-- Используем класс official-card, который мы настроили в site.css -->
+            <div class="official-card p-4 p-md-5 h-100">
                 <h5 class="hero-subtitle mb-4" id="formTitle">Новый интегратор</h5>
                 
                 <form id="providerForm" class="d-flex flex-column gap-3">
@@ -41,9 +98,9 @@
                         <input type="text" id="pModelName" class="form-control form-control-adaptive" placeholder="llama3" required />
                     </div>
 
-                    <div class="form-check form-switch py-2">
-                        <input class="form-check-input" type="checkbox" id="pIsLocal" onchange="toggleAuthFields()">
-                        <label class="form-label mb-0 ms-2" for="pIsLocal" style="cursor:pointer;">Локальное развертывание (Без ключа)</label>
+                    <div class="form-check form-switch py-2 d-flex align-items-center gap-2">
+                        <input class="form-check-input mt-0" type="checkbox" id="pIsLocal" onchange="toggleAuthFields()" style="width: 2.5em; height: 1.25em;">
+                        <label class="form-label mb-0" for="pIsLocal" style="cursor:pointer;">Локальное развертывание (Без ключа)</label>
                     </div>
 
                     <div id="authContainer" class="auth-container">
@@ -64,15 +121,16 @@
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2 mt-3">
-                        <button type="button" class="btn btn-secondary flex-grow-1" onclick="resetForm()">Очистить</button>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="button" class="btn btn-secondary-adaptive flex-grow-1" onclick="resetForm()">Очистить</button>
                         <button type="submit" class="btn btn-official flex-grow-1">Сохранить</button>
                     </div>
                 </form>
             </div>
         </div>
+        
         <div class="col-lg-7">
-            <div class="official-card p-4 h-100">
+            <div class="official-card p-4 p-md-5 h-100">
                 <h5 class="hero-subtitle mb-4">Активные конфигурации</h5>
                 <div id="providersList" class="d-flex flex-column gap-3"></div>
             </div>
@@ -106,16 +164,18 @@
 
             providers.forEach(p => {
                 list.innerHTML += `
-                    <div class="p-3 border rounded" style="border-color: var(--card-border) !important;">
-                        <div class="d-flex justify-content-between align-items-start">
+                    <div class="p-3 provider-item-card">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
                             <div>
-                                <h6 class="mb-1 hero-subtitle">${p.name} ${p.isLocal ? '<span class="badge bg-secondary ms-2">Local</span>' : ''}</h6>
-                                <div class="form-hint mb-0">${p.baseUrl}</div>
-                                <div class="form-hint mt-0">Модель: ${p.model}</div>
+                                <h6 class="mb-1 hero-subtitle" style="font-size: 1.05rem;">
+                                    ${p.name} ${p.isLocal ? '<span class="badge bg-secondary ms-2" style="font-size: 0.7rem;">Local</span>' : ''}
+                                </h6>
+                                <div class="form-hint mb-0" style="word-break: break-all;">${p.baseUrl}</div>
+                                <div class="form-hint mt-0">Модель: <span style="color: var(--text-color);">${p.model}</span></div>
                             </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-primary" onclick='editProvider(${JSON.stringify(p)})'>Изменить</button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProvider('${p.id}')">Удалить</button>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button class="btn btn-sm btn-outline-primary fw-medium px-3" onclick='editProvider(${JSON.stringify(p)})'>Изменить</button>
+                                <button class="btn btn-sm btn-outline-danger fw-medium px-3" onclick="deleteProvider('${p.id}')">Удалить</button>
                             </div>
                         </div>
                     </div>`;

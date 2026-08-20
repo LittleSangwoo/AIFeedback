@@ -2,16 +2,13 @@
 
 namespace AIFeedback.Models
 {
-    // Сущность для сохранения результатов целого потока
     public class ProgramSessionStats
     {
         public int Id { get; set; }
         public string ProgramName { get; set; } = string.Empty;
 
-        // --- Добавили для шапки отчета (Раздел 1) ---
         public string TrainingPeriod { get; set; } = string.Empty;
         public int TotalListeners { get; set; }
-        // --------------------------------------------
 
         public DateTime AnalysisDate { get; set; } = DateTime.UtcNow;
 

@@ -1,26 +1,28 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace AIFeedback.Models.DTOs
 {
     public class AiAnalysisResultDto
     {
-        // 1) общая информация о программе
-        public string GeneralInfo { get; set; }
+        // ==========================================
+        // НОВЫЕ ПОЛЯ (ДЛЯ ДЕТАЛЬНОГО WORD-ОТЧЕТА)
+        // ==========================================
+        [JsonPropertyName("MetricsNotes")]
+        public MetricsNotesDto MetricsNotes { get; set; } = new MetricsNotesDto();
 
-        // 2) ключевые критерии
-        public string KeyCriteria { get; set; }
+        [JsonPropertyName("UnnecessaryTopics")]
+        public string UnnecessaryTopics { get; set; } = "Неактуальных тем не выявлено.";
 
-        // 3) предложения слушателей
-        public string Suggestions { get; set; }
+        [JsonPropertyName("TopicsToAdd")]
+        public string TopicsToAdd { get; set; } = "Дополнений не зафиксировано.";
 
-        // 4) траектория изменения программы
-        public string Trajectory { get; set; }
+        [JsonPropertyName("Trajectory")]
+        public TrajectoryDto Trajectory { get; set; } = new TrajectoryDto();
 
-        // 3–7 обоснованных выводов со статистикой
-        //public List<string> Conclusions { get; set; }
-
-
-
+        // ==========================================
+        // СТАРЫЕ ПОЛЯ (ДЛЯ ВЕБ-ДАШБОРДА)
+        // ==========================================
         [JsonPropertyName("Sentiment")]
         public SentimentStats Sentiment { get; set; } = new SentimentStats();
 
@@ -29,33 +31,64 @@ namespace AIFeedback.Models.DTOs
 
         [JsonPropertyName("Conclusions")]
         public List<Conclusion> Conclusions { get; set; } = new List<Conclusion>();
-
-        //public SentimentStats Sentiment { get; set; } = new SentimentStats();
-        //public List<Topic> TopTopics { get; set; } = new List<Topic>();
-        public List<string> UnrelevantTopics { get; set; } = new List<string>();
-        //public List<Conclusion> Conclusions { get; set; } = new List<Conclusion>();
-        // Добавить в AiAnalysisResultDto для Раздела 2
-        public string UsefulnessComment { get; set; } = string.Empty;
-        public string PracticalityComment { get; set; } = string.Empty;
-        public string AccessibilityComment { get; set; } = string.Empty;
-        public string InteractionComment { get; set; } = string.Empty;
-        public string EngagementComment { get; set; } = string.Empty;
     }
+
+    // --- КЛАССЫ ДЛЯ НОВОГО ОТЧЕТА ---
+
+    public class MetricsNotesDto
+    {
+        [JsonPropertyName("Usefulness")]
+        public string Usefulness { get; set; } = "Оценка стабильна. Замечаний не выявлено.";
+
+        [JsonPropertyName("Practicality")]
+        public string Practicality { get; set; } = "Оценка стабильна. Замечаний не выявлено.";
+
+        [JsonPropertyName("Accessibility")]
+        public string Accessibility { get; set; } = "Оценка стабильна. Замечаний не выявлено.";
+
+        [JsonPropertyName("Interaction")]
+        public string Interaction { get; set; } = "Оценка стабильна. Замечаний не выявлено.";
+
+        [JsonPropertyName("Engagement")]
+        public string Engagement { get; set; } = "В целом, вовлеченность слушателей была на высоком уровне.";
+    }
+
+    public class TrajectoryDto
+    {
+        [JsonPropertyName("Relevance")]
+        public string Relevance { get; set; } = "Программа актуальна и востребована среди слушателей.";
+
+        [JsonPropertyName("Selection")]
+        public string Selection { get; set; } = "Не требуется.";
+
+        [JsonPropertyName("Additions")]
+        public string Additions { get; set; } = "Рекомендаций по изменению программы нет.";
+
+        [JsonPropertyName("Hours")]
+        public string Hours { get; set; } = "Не требуется.";
+
+        [JsonPropertyName("Format")]
+        public string Format { get; set; } = "Не требуется.";
+    }
+
+    // --- КЛАССЫ ДЛЯ ДАШБОРДА ---
 
     public class SentimentStats
     {
+        [JsonPropertyName("PositivePercent")]
         public double PositivePercent { get; set; }
+
+        [JsonPropertyName("NeutralPercent")]
         public double NeutralPercent { get; set; }
+
+        [JsonPropertyName("NegativePercent")]
         public double NegativePercent { get; set; }
     }
 
     public class Topic
     {
-        //public string Name { get; set; } = string.Empty;
-        public int MentionCount { get; set; }
-
         [JsonPropertyName("Name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("MentionsCount")]
         public int MentionsCount { get; set; }
@@ -66,17 +99,13 @@ namespace AIFeedback.Models.DTOs
 
     public class Conclusion
     {
-        public string Text { get; set; } = string.Empty;
-        public string Recommendation { get; set; } = string.Empty;
-        //public string Priority { get; set; } = string.Empty;
-
         [JsonPropertyName("Priority")]
-        public string Priority { get; set; }
+        public string Priority { get; set; } = string.Empty;
 
         [JsonPropertyName("Action")]
-        public string Action { get; set; }
+        public string Action { get; set; } = string.Empty;
 
         [JsonPropertyName("DataProof")]
-        public string DataProof { get; set; }
+        public string DataProof { get; set; } = string.Empty;
     }
 }

@@ -11,7 +11,7 @@ namespace AIFeedback.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Настройка для SQLite (можно сохранить как текст)
+            // Настройка для SQLite
             modelBuilder.Entity<AnalysisResult>()
                 .Property(e => e.ThemesJson)
                 .HasColumnType("TEXT");

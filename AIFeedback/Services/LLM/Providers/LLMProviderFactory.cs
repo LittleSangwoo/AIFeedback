@@ -27,7 +27,7 @@ namespace AIFeedback.Services.LLM.Providers
 
         private void InitializeCreators()
         {
-            // 1. Загружаем все провайдеры из llm_providers.json
+            // Загружаем все провайдеры из llm_providers.json
             var providersFile = "llm_providers.json";
             if (!File.Exists(providersFile))
             {
@@ -41,7 +41,6 @@ namespace AIFeedback.Services.LLM.Providers
 
             foreach (var config in providers)
             {
-                // Ключом будет Name (или Id) – используем Name для удобства
                 var key = config.Name?.ToLowerInvariant();
                 if (string.IsNullOrEmpty(key)) continue;
 
@@ -61,8 +60,6 @@ namespace AIFeedback.Services.LLM.Providers
                 };
             }
 
-            // 2. Добавляем возможность выбрать провайдера по умолчанию из appsettings
-            // (опционально, если не задано, берём первый из списка)
         }
 
         private ILLMProvider CreateGigaChatProvider(ProviderConfig config)
@@ -74,7 +71,7 @@ namespace AIFeedback.Services.LLM.Providers
                 AuthUrl = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth", // можно вынести в конфиг
                 ApiUrl = config.ApiUrl,
                 ClientId = config.ApiKey, // предположим, что ApiKey хранит ClientId
-                Secret = config.Scope ?? "" // Scope может содержать секрет
+                Secret = config.Scope ?? "" 
             };
             // Создаём экземпляр через DI с явным указанием опций
             var httpClient = _serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();

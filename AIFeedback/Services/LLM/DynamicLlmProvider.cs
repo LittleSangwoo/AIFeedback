@@ -27,23 +27,21 @@ namespace AIFeedback.Services.LLM
 
         public async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null)
         {
-            // 1. Читаем текущие настройки (можно кэшировать для скорости)
+            // читаем текущие настройки (можно кэшировать для скорости)
             string json = await System.IO.File.ReadAllTextAsync("llm_providers.json");
 
-            //var config = JsonSerializer.Deserialize<LlmConfiguration>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            //var allProviders = config?.Providers ?? new List<LlmProviderConfig>();
 
             var allProviders = JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                    ?? new List<LlmProviderConfig>();
 
-            // 2. Ищем провайдера, которого выбрал пользователь, или берем дефолтного
+            // Ищем провайдера, которого выбрал пользователь, или берем дефолтного
             var providerConfig = allProviders.FirstOrDefault(p => !string.IsNullOrEmpty(providerName) && p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase))
                               
                               ?? allProviders.FirstOrDefault();
 
             if (providerConfig == null) throw new InvalidOperationException("Конфигурация нейросетей пуста.");
 
-            // 3. Формируем универсальный запрос в формате OpenAI (подходит для Ollama, Groq, кастомных API)
+            //  Формируем универсальный запрос в формате OpenAI (подходит для Ollama, Groq, кастомных API)
             var payload = new
             {
                 model = providerConfig.Model,
@@ -53,14 +51,14 @@ namespace AIFeedback.Services.LLM
                     new { role = "user", content = userPrompt }
                 },
                 temperature = temperature,
-                max_tokens = 2500, // <--- ДАЕМ РАЗРЕШЕНИЕ НА БОЛЬШОЙ ТЕКСТ
+                max_tokens = 2500,
                 stream = false
             };
 
             var requestContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, providerConfig.BaseUrl) { Content = requestContent };
 
-            // 4. Гибкая маршрутизация авторизации
+            //  Гибкая маршрутизация авторизации
             bool isYandex = providerConfig.Name.Contains("yandex", StringComparison.OrdinalIgnoreCase) ||
                             providerConfig.BaseUrl.Contains("yandex");
             bool isGigaChat = providerConfig.Name.Contains("giga", StringComparison.OrdinalIgnoreCase);
@@ -84,7 +82,7 @@ namespace AIFeedback.Services.LLM
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", providerConfig.ApiKey);
             }
 
-            // 5. Отправка и обработка
+            // Отправка и обработка
             var response = await _httpClient.SendAsync(requestMessage);
 
             if (!response.IsSuccessStatusCode)

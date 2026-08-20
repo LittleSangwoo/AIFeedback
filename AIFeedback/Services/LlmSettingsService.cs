@@ -34,13 +34,13 @@ namespace AIFeedback.Services
                 return new LlmConfiguration();
             }
 
-            // 1. Сначала парсим JSON в список (потому что в файле квадратные скобки [ ] )
+            //  парсим JSON в список отому что в файле квадратные скобки
             var configs = JsonSerializer.Deserialize<List<LlmConfiguration>>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            // 2. Возвращаем ПЕРВЫЙ элемент из списка. Если список пустой или null — возвращаем пустую конфигурацию.
+            //возвращаем ПЕРВЫЙ элемент из списка. Если список пустой или null — возвращаем пустую конфигурацию.
             return configs?.FirstOrDefault() ?? new LlmConfiguration();
         }
 
@@ -83,7 +83,7 @@ namespace AIFeedback.Services
         {
             var config = GetConfiguration();
 
-            // Проверяем, существует ли такой провайдер, прежде чем делать его активным
+            //  существует ли такой провайдер, прежде чем делать его активным
             if (config.Providers.Any(p => p.Id == providerId))
             {
                 config.ActiveProviderId = providerId;

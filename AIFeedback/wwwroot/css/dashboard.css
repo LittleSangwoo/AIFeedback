@@ -24,9 +24,6 @@
     color: var(--accent-color);
 }
 
-/* ==========================================
-   ИДЕАЛЬНЫЙ ЭКСПОРТ В PDF И WORD (ВСЕГДА СВЕТЛЫЙ)
-   ========================================== */
 @media print {
     body, .card {
         background-color: #ffffff !important;

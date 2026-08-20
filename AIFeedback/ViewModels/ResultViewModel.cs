@@ -12,7 +12,7 @@ namespace AIFeedback.ViewModels
         public string Teachers { get; set; }
 
         // Числовые метрики (5 критериев)
-        public Dictionary<string, double> Averages { get; set; } // ключи: "Полезность", "Доступность", "Практика", "Взаимодействие", "Вовлеченность"
+        public Dictionary<string, double> Averages { get; set; }
         public double OverallSatisfaction { get; set; }
 
         // Распределение оценок (1-3, 4-7, 8-10) для каждого критерия
@@ -27,8 +27,8 @@ namespace AIFeedback.ViewModels
 
         // Предложения слушателей
         public List<string> IrrelevantTopics { get; set; }
-        public Dictionary<string, int> SuggestedTopics { get; set; } // тема -> кол-во человек
-        public Dictionary<string, double> PreferredFormats { get; set; } // формат -> доля (0-1)
+        public Dictionary<string, int> SuggestedTopics { get; set; } // тема кол-во человек
+        public Dictionary<string, double> PreferredFormats { get; set; } // формат доля (0-1)
 
         // Итоговые выводы (генерация на основе данных)
         public List<Conclusion> Conclusions { get; set; }

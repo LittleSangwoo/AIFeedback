@@ -12,10 +12,10 @@
         public double AvgAccessibility { get; set; }
         public double AvgEngagement { get; set; }
 
-        // Расчетный общий балл (округляем до 1 знака)
+        // Расчетный общий балл 
         public double GeneralScore => Math.Round((AvgUtility + AvgPractice + AvgAccessibility + AvgEngagement) / 4.0, 1);
 
-        // Процент вовлеченности (ответы "Нет" на вопрос об отстраненности)
+        // Процент вовлеченности 
         public double EngagementPercent { get; set; }
 
         // Данные для столбчатой диаграммы (распределение оценок)
@@ -26,10 +26,10 @@
         // JSON с инсайтами от ИИ
         public string AiInsightsJson { get; set; }
 
-        // 1. Ссылка на скачивание сгенерированного Word/PDF отчета
+        //Ссылка на скачивание сгенерированного Word/PDF отчета
         public string ReportDownloadUrl { get; set; } = string.Empty;
 
-        // 2. Общая статистика для линейчатой диаграммы (Средние баллы)
+        // Общая статистика для линейчатой диаграммы (Средние баллы)
         public double AvgUsefulness { get; set; }
         public double AvgPracticality { get; set; }
         //public double AvgAccessibility { get; set; }
@@ -37,14 +37,12 @@
         public double OverallSatisfaction { get; set; }
         public double EngagementPercentage { get; set; } // Вовлеченность (Да/Нет)
 
-        // 3. Данные для столбчатой диаграммы (Распределение оценок)
+        // Данные для столбчатой диаграммы (Распределение оценок)
         public DistributionStats Distribution { get; set; } = new DistributionStats();
 
-        // 4. Текстовые выводы от ИИ (Модуль 4)
+        // Текстовые выводы от ИИ
         public List<string> Conclusions { get; set; } = new List<string>();
 
-        // Для тепловой карты (матрица корреляций) потребуется отдельный класс или двумерный массив. 
-        // Пока оставляем задел.
     }
 
     public class DistributionStats

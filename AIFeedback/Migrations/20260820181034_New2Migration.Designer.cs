@@ -3,6 +3,7 @@ using System;
 using AIFeedback.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AIFeedback.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820181034_New2Migration")]
+    partial class New2Migration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
@@ -52,9 +55,6 @@ namespace AIFeedback.Migrations
                     b.Property<DateTime>("DateProcessed")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DetachedCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Dist1to3")
                         .HasColumnType("INTEGER");
 
@@ -62,9 +62,6 @@ namespace AIFeedback.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Dist8to10")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("EngagedCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<double>("EngagementYesPercent")

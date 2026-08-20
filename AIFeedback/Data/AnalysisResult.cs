@@ -16,7 +16,7 @@ namespace AIFeedback.Data
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; } // ИСПРАВЛЕНО: было string, стало int
+        public int Id { get; set; }
 
 
         public DateTime CreatedAt { get; set; }
@@ -34,16 +34,17 @@ namespace AIFeedback.Data
         public int Dist4to7 { get; set; }
         public int Dist8to10 { get; set; }
 
-        // JSON-поля для текстового анализа (храним как строки)
+        // JSON-поля для текстового анализа 
         public string ThemesJson { get; set; } = string.Empty;
+        public int EngagedCount { get; set; }
+        public int DetachedCount { get; set; }
         public string SentimentJson { get; set; } = string.Empty;
         public string ProblemsJson { get; set; } = string.Empty;
         public string QuotesJson { get; set; } = string.Empty;
         public string RecommendationsJson { get; set; } = string.Empty;
 
-        // Для отладки (опционально)
+        // Для отладки 
         public string? RawComments { get; set; }
-        // Добавь это свойство к остальным полям в Data/AnalysisResult.cs
         public string CorrelationMatrixJson { get; set; } = "null";
         public string SessionName { get; set; }
         public DateTime DateProcessed { get; set; }

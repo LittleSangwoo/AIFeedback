@@ -60,7 +60,7 @@ namespace AIFeedback.Services.Analytics
             return result;
         }
 
-        // Подсчет вовлеченности (Да/Нет)
+        // Подсчет вовлеченности 
         public static double CalculateEngagementPercentage(IEnumerable<string> answers, string targetAnswer = "Да")
         {
             if (answers == null || !answers.Any()) return 0;

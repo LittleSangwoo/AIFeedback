@@ -36,9 +36,6 @@ namespace AIFeedback.ViewModels
         public int Dist4to7 { get; set; }
         public int Dist8to10 { get; set; }
 
-        // =====================================
-        // НОВЫЕ СВОЙСТВА ДЛЯ ГРАФИКА ТРЕНДА
-        // =====================================
         public List<double> TrendValues { get; set; } = new List<double>();
         public List<string> TrendLabels { get; set; } = new List<string>();
         public string CorrelationMatrixJson { get; set; }

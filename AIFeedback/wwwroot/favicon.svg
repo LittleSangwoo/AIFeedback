@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Скругленный фон (основной акцентный цвет) -->
+  <rect width="100" height="100" rx="22" fill="#004d99" />
+  
+  <!-- Столбики графика -->
+  <rect x="22" y="55" width="12" height="25" rx="4" fill="#ffffff" opacity="0.9" />
+  <rect x="44" y="35" width="12" height="45" rx="4" fill="#ffffff" opacity="0.9" />
+  <rect x="66" y="20" width="12" height="60" rx="4" fill="#58a6ff" />
+  
+  <!-- ИИ-искорка (звездочка) над самым высоким графиком -->
+  <path d="M 72 15 Q 72 6 81 6 Q 72 6 72 -3 Q 72 6 63 6 Q 72 6 72 15 Z" fill="#ffffff" transform="translate(-18, 5)" />
+</svg>

@@ -26,7 +26,7 @@ namespace AIFeedback.Services
                 // Передаем providerName, а всю магию переключения провайдер делает сам
                 rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, 0.3, providerName);
 
-                // ЗАЩИТА: Проверяем, не промолчала ли сеть
+                // Проверяем, не промолчала ли сеть
                 if (string.IsNullOrWhiteSpace(rawResponse))
                 {
                     throw new InvalidOperationException("Провайдер ИИ вернул пустой ответ. Возможно, сработал фильтр цензуры или не хватило токенов.");
@@ -78,43 +78,5 @@ namespace AIFeedback.Services
 
             return json;
         }
-
-
-
-        // Запасной детерминированный результат для демонстрации, если у нейросети нет связи
-        //private AiAnalysisResultDto GetFallbackAnalysisResult()
-        //{
-        //    return new AiAnalysisResultDto
-        //    {
-        //        Sentiment = new SentimentStats
-        //        {
-        //            PositivePercent = 82.5,
-        //            NeutralPercent = 12.0,
-        //            NegativePercent = 5.5
-        //        },
-        //        TopTopics = new List<Topic>
-        //        {
-        //            new Topic { Name = "Практическая применимость материалов", MentionsCount = 18, IsRelevant = true },
-        //            new Topic { Name = "Высокая квалификация преподавателей", MentionsCount = 14, IsRelevant = true },
-        //            new Topic { Name = "Запросы на дополнительные кейсы по СПб", MentionsCount = 8, IsRelevant = true },
-        //            new Topic { Name = "Теоретический понятийный аппарат", MentionsCount = 3, IsRelevant = false }
-        //        },
-        //        Conclusions = new List<Conclusion>
-        //        {
-        //            new Conclusion
-        //            {
-        //                Priority = "High",
-        //                Action = "Увеличить долю практических разборов ситуаций и кейсов Санкт-Петербурга.",
-        //                DataProof = "34% слушателей в открытых ответах указали на необходимость региональной привязки кейсов."
-        //            },
-        //            new Conclusion
-        //            {
-        //                Priority = "Medium",
-        //                Action = "Сократить вводный лекционный блок с юридическими определениями в очном формате.",
-        //                DataProof = "Блок теории отмечен как неактуальный 4.3% респондентов, предлагается вынести его в СДО."
-        //            }
-        //        }
-        //    };
-        //}
     }
 }
