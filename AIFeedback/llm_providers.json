@@ -1,14 +1,14 @@
 [
-    {
-        "Id": "234e2493-4f0f-45c8-9f52-8372424241e7",
-        "Name": "groq",
-        "IsLocal": false,
-        "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
-        "ApiKey": "-",
-        "Model": "openai/gpt-oss-120b",
-        "Scope": "-",
-        "AuthType": "OpenAI"
-    },
+  {
+    "Id": "234e2493-4f0f-45c8-9f52-8372424241e7",
+    "Name": "groq",
+    "IsLocal": false,
+    "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
+    "ApiKey": "-",
+    "Model": "openai/gpt-oss-120b",
+    "Scope": "-",
+    "AuthType": "OpenAI"
+  },
   {
     "Id": "298ee187-abe1-4001-a23b-7056283fe80a",
     "Name": "gigachatApi",
@@ -46,6 +46,16 @@
     "BaseUrl": "https://ai.api.cloud.yandex.net/v1/chat/completions",
     "ApiKey": "-",
     "Model": "gpt://b1g1i2lmp3nsmkf9793r/yandexgpt/latest",
+    "Scope": "",
+    "AuthType": "OpenAI"
+  },
+  {
+    "Id": "2a043de9-f5a4-4e1b-8bcf-72cdd6dfb739",
+    "Name": "yandex1",
+    "IsLocal": false,
+    "BaseUrl": "https://ai.api.cloud.yandex.net/v1/chat/completions",
+    "ApiKey": "-",
+    "Model": "gpt://b1gansq73ouk6h9omeac/yandexgpt/latest",
     "Scope": "",
     "AuthType": "OpenAI"
   }

@@ -170,9 +170,24 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
         </div>
     }
+    @if (TempData["ExcelWarning"] != null)
+        {
+             <div class="alert alert-danger border-0 shadow-sm no-print" role="alert">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i>
+                <strong>Проблема с файлом.</strong> @TempData["ExcelWarning"]
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+        
+    </div>
+    }
 
-    
-
+    @if (TempData["DuplicateInfo"] != null)
+          {
+              <div class="alert alert-info border-0 shadow-sm no-print" role="alert">
+                 <i class="bi bi-info-circle-fill me-2"></i>
+                 <strong>Информация.</strong> @TempData["DuplicateInfo"]
+                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+             </div>
+     }
     <!-- МЕТРИКИ -->
     <div class="row text-center mb-4 g-4">
         <div class="col-md-4">
@@ -214,6 +229,55 @@
             </div>
         </div>
     </div>
+
+    <div class="row mb-4 g-4">
+       <div class="col-12">
+           <div class="chart-card p-4">
+               <h6 class="mb-4 text-uppercase fw-bold" style="color: var(--text-muted);">Дополнительная статистика по критериям</h6>
+               <div class="table-responsive">
+                   <table class="table mb-0" style="color: var(--text-color);">
+                       <thead>
+                          <tr style="border-bottom: 1px solid var(--card-border);">
+                               <th style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Критерий</th>
+                               <th class="text-center" style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Среднее</th>
+                               <th class="text-center" style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Медиана</th>
+                               <th class="text-center" style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Стандартное отклонение</th>
+                           </tr>
+                       </thead>
+                       <tbody>
+                           <tr style="border-bottom: 1px solid var(--card-border);">
+                              <td class="fw-semibold">Полезность программы</td>
+                               <td class="text-center">@Model.UsefulnessAvg.ToString("0.0")</td>
+                               <td class="text-center">@Model.UsefulnessMedian.ToString("0.0")</td>
+                               <td class="text-center">@Model.UsefulnessStdDev.ToString("0.0")</td>
+                           </tr>
+                           <tr style="border-bottom: 1px solid var(--card-border);">
+                               <td class="fw-semibold">Практико-ориентированность</td>
+                               <td class="text-center">@Model.PracticalityAvg.ToString("0.0")</td>
+                               <td class="text-center">@Model.PracticalityMedian.ToString("0.0")</td>
+                               <td class="text-center">@Model.PracticalityStdDev.ToString("0.0")</td>
+                           </tr>
+                           <tr style="border-bottom: 1px solid var(--card-border);">
+                               <td class="fw-semibold">Доступность материалов</td>
+                               <td class="text-center">@Model.AvailabilityAvg.ToString("0.0")</td>
+                               <td class="text-center">@Model.AvailabilityMedian.ToString("0.0")</td>
+                               <td class="text-center">@Model.AvailabilityStdDev.ToString("0.0")</td>
+                          </tr>
+                          <tr>
+                               <td class="fw-semibold">Взаимодействие с командой КУ</td>
+                               <td class="text-center">@Model.InteractionAvg.ToString("0.0")</td>
+                               <td class="text-center">@Model.InteractionMedian.ToString("0.0")</td>
+                               <td class="text-center">@Model.InteractionStdDev.ToString("0.0")</td>
+                           </tr>
+                       </tbody>
+                   </table>
+               </div>
+               <div class="form-hint mt-2" style="color: var(--text-muted); font-size: 0.8rem;">
+                  Медиана показывает типичную оценку без искажения от единичных крайних значений; стандартное отклонение — насколько сильно расходятся мнения слушателей по критерию.
+               </div>
+           </div>
+       </div>
+   </div>
 
     <div class="row mb-4 g-4">
         <div class="col-md-6">
@@ -330,10 +394,23 @@
     }
 
     const insightsList = aiData?.Conclusions || [];
+    function escapeHtml(str) {
+       const div = document.createElement('div');
+       div.textContent = str || '';
+       return div.innerHTML;
+   }
     if (insightsList && insightsList.length > 0) {
         const insightsHtml = insightsList.map(r => {
             const isHigh = (r.Priority || '').toLowerCase() === 'high' || (r.Priority || '').toLowerCase() === 'высокий';
             const badgeColor = isHigh ? '#d73a49' : '#e3b341';
+            const quotes = r.SupportingQuotes || [];
+           const quotesHtml = quotes.length > 0
+               ? `<div class="mt-2 ps-3" style="border-left: 3px solid var(--card-border);">
+                   ${quotes.map(q => `<div class="small mb-1" style="color: var(--text-muted); font-style: italic;">
+                       «${escapeHtml(q.Text)}»${q.MentionsCount > 1 ? ` <span style="opacity:0.7;">— похожих комментариев: ${q.MentionsCount}</span>` : ''}
+                   </div>`).join('')}
+               </div>`
+               : '';
             return `<div class="mb-4 pb-3" style="border-bottom: 1px solid rgba(128,128,128,0.2);">
                 <strong class="d-block mb-1" style="font-size: 1.1rem; color: var(--text-color);">
                     <span style="color: ${badgeColor}; margin-right: 8px;">●</span>
@@ -342,6 +419,7 @@
                 <span style="font-size: 0.95rem; color: var(--text-muted);">
                     Обоснование: ${r.DataProof || 'Основано на анализе текстовой обратной связи.'}
                 </span>
+                 ${quotesHtml}
             </div>`;
         }).join('');
         document.getElementById('aiInsightsContainer').innerHTML = insightsHtml;
@@ -451,10 +529,10 @@
         const loadingId = appendMessage('AI-Аналитик', 'Анализирую...', 'ai', true);
 
         try {
-            const response = await fetch('/Dashboard/AskAi', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ResultId: resultId, Message: message })
-            });
+                const response = await fetch('/Dashboard/AskAi', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ResultId: resultId, Message: message, ProviderName: 'yandex1' })
+    });
 
             const data = await response.json();
             document.getElementById(loadingId).remove();

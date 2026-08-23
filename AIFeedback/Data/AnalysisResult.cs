@@ -42,7 +42,19 @@ namespace AIFeedback.Data
         public string ProblemsJson { get; set; } = string.Empty;
         public string QuotesJson { get; set; } = string.Empty;
         public string RecommendationsJson { get; set; } = string.Empty;
+        // Медиана и стандартное отклонение по каждому критерию
+        public double UsefulnessMedian { get; set; }
+        public double PracticalityMedian { get; set; }
+        public double AvailabilityMedian { get; set; }
+        public double InteractionMedian { get; set; }
 
+        public double UsefulnessStdDev { get; set; }
+        public double PracticalityStdDev { get; set; }
+        public double AvailabilityStdDev { get; set; }
+        public double InteractionStdDev { get; set; }
+        
+        // Сколько дублирующихся анкет было исключено при разборе файла
+        public int DuplicateRowsRemoved { get; set; }
         // Для отладки 
         public string? RawComments { get; set; }
         public string CorrelationMatrixJson { get; set; } = "null";

@@ -23,8 +23,8 @@ namespace AIFeedback.Services
             string rawResponse = string.Empty;
             try
             {
-                // Передаем providerName, а всю магию переключения провайдер делает сам
-                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, 0.3, providerName);
+                // Передаем providerName, переключения провайдер делает сам
+                rawResponse = await _llmProvider.AnalyzeTextAsync(systemPrompt, userPrompt, providerName: providerName);
 
                 // Проверяем, не промолчала ли сеть
                 if (string.IsNullOrWhiteSpace(rawResponse))

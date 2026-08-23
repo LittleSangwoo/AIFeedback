@@ -153,7 +153,43 @@ namespace AIFeedback.Controllers
             ws.Cell(r, 8).Value = engPercent; ws.Range(r, 8, r, 12).Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center); r++;
 
             ws.Range(10, 1, r - 1, 13).Style.Border.OutsideBorder = XLBorderStyleValues.Thin; ws.Range(10, 1, r - 1, 13).Style.Border.InsideBorder = XLBorderStyleValues.Thin; ws.Range(10, 1, r - 1, 13).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Top); r++;
-            
+
+            ws.Cell(r, 1).Value = "Дополнительная статистика по критериям"; ApplyHeaderStyle(ws.Range(r, 1, r, 13)); r++;
+
+            ws.Cell(r, 1).Value = "Критерий"; ws.Range(r, 1, r, 4).Merge();
+            ws.Cell(r, 5).Value = "Среднее"; ws.Range(r, 5, r, 7).Merge();
+            ws.Cell(r, 8).Value = "Медиана"; ws.Range(r, 8, r, 10).Merge();
+            ws.Cell(r, 11).Value = "Стандартное отклонение"; ws.Range(r, 11, r, 13).Merge();
+            ws.Range(r, 1, r, 13).Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            ws.Range(r, 1, r, 13).Style.Border.OutsideBorder = XLBorderStyleValues.Thin; ws.Range(r, 1, r, 13).Style.Border.InsideBorder = XLBorderStyleValues.Thin; r++;
+
+            int statsStartRow = r;
+            void DrawStatsRow(string name, double avg, double median, double stdDev)
+            {
+                ws.Cell(r, 1).Value = name; ws.Range(r, 1, r, 4).Merge();
+                ws.Cell(r, 5).Value = Math.Round(avg, 1); ws.Range(r, 5, r, 7).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                ws.Cell(r, 8).Value = Math.Round(median, 1); ws.Range(r, 8, r, 10).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                ws.Cell(r, 11).Value = Math.Round(stdDev, 1); ws.Range(r, 11, r, 13).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                r++;
+            }
+
+            DrawStatsRow("Полезность программы", result.UsefulnessAvg, result.UsefulnessMedian, result.UsefulnessStdDev);
+            DrawStatsRow("Практико-ориентированность", result.PracticalityAvg, result.PracticalityMedian, result.PracticalityStdDev);
+            DrawStatsRow("Доступность материалов", result.AvailabilityAvg, result.AvailabilityMedian, result.AvailabilityStdDev);
+            DrawStatsRow("Взаимодействие с командой КУ", result.InteractionAvg, result.InteractionMedian, result.InteractionStdDev);
+
+            ws.Range(statsStartRow, 1, r - 1, 13).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(statsStartRow, 1, r - 1, 13).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            r++;
+
+            if (result.DuplicateRowsRemoved > 0)
+            {
+                ws.Cell(r, 1).Value = $"Примечание: при разборе исходного файла обнаружено и исключено из расчётов {result.DuplicateRowsRemoved} дублирующихся анкет.";
+                ws.Range(r, 1, r, 13).Merge().Style.Font.SetItalic().Font.FontColor = XLColor.FromHtml("#6c757d");
+                r++;
+            }
+            r++;
+
             ws.Cell(r, 1).Value = "Предложения слушателей"; ApplyHeaderStyle(ws.Range(r, 1, r, 13)); r++;
             ws.Cell(r, 1).Value = "Темы, которые оказались неактуальны"; ws.Range(r, 1, r, 6).Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
             ws.Cell(r, 7).Value = "Темы, которыми можно дополнить программу"; ws.Range(r, 7, r, 13).Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center); r++;
@@ -218,6 +254,15 @@ namespace AIFeedback.Controllers
                     ProgramName = result.ProgramName ?? "Без_названия", ListenerCount = result.ListenerCount, CreatedAt = result.CreatedAt,
                     UsefulnessAvg = result.UsefulnessAvg, PracticalityAvg = result.PracticalityAvg, AvailabilityAvg = result.AvailabilityAvg, InteractionAvg = result.InteractionAvg,
                     EngagementYesPercent = result.EngagementYesPercent, OverallSatisfaction = result.OverallSatisfaction,
+                    UsefulnessMedian = result.UsefulnessMedian,
+                    PracticalityMedian = result.PracticalityMedian,
+                    AvailabilityMedian = result.AvailabilityMedian,
+                    InteractionMedian = result.InteractionMedian,
+                    UsefulnessStdDev = result.UsefulnessStdDev,
+                    PracticalityStdDev = result.PracticalityStdDev,
+                    AvailabilityStdDev = result.AvailabilityStdDev,
+                    InteractionStdDev = result.InteractionStdDev,
+                    DuplicateRowsRemoved = result.DuplicateRowsRemoved,
                     ScoresDistribution = distMap ?? new Dictionary<string, int[]>(),
                     FormatOfflineCount = result.FormatOfflineCount, FormatMixedCount = result.FormatMixedCount, FormatOnlineCount = result.FormatOnlineCount,
                     EngagedCount = result.EngagedCount, DetachedCount = result.DetachedCount, 
@@ -246,6 +291,15 @@ namespace AIFeedback.Controllers
                 UsefulnessAvg = result.UsefulnessAvg, AvailabilityAvg = result.AvailabilityAvg, PracticalityAvg = result.PracticalityAvg, InteractionAvg = result.InteractionAvg,
                 EngagementYesPercent = result.EngagementYesPercent, OverallSatisfaction = result.OverallSatisfaction, CorrelationMatrixJson = result.CorrelationMatrixJson,
                 Dist1to3 = result.Dist1to3, Dist4to7 = result.Dist4to7, Dist8to10 = result.Dist8to10,
+                UsefulnessMedian = result.UsefulnessMedian,
+                PracticalityMedian = result.PracticalityMedian,
+                AvailabilityMedian = result.AvailabilityMedian,
+                InteractionMedian = result.InteractionMedian,
+                UsefulnessStdDev = result.UsefulnessStdDev,
+                PracticalityStdDev = result.PracticalityStdDev,
+                AvailabilityStdDev = result.AvailabilityStdDev,
+                InteractionStdDev = result.InteractionStdDev,
+                DuplicateRowsRemoved = result.DuplicateRowsRemoved,
                 TrendLabels = !string.IsNullOrEmpty(result.TrendLabelsJson) ? JsonSerializer.Deserialize<List<string>>(result.TrendLabelsJson) : new List<string>(),
                 TrendValues = !string.IsNullOrEmpty(result.TrendValuesJson) ? JsonSerializer.Deserialize<List<double>>(result.TrendValuesJson) : new List<double>(),
                 AiAnalysis = JsonSerializer.Deserialize<AiAnalysisResultDto>(result.AiInsightsJson ?? "{}", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new AiAnalysisResultDto()
@@ -257,6 +311,7 @@ namespace AIFeedback.Controllers
         {
             public int ResultId { get; set; }
             public string Message { get; set; }
+            public string ProviderName { get; set; } // поле для провайдера
         }
 
         [HttpPost]
@@ -267,7 +322,8 @@ namespace AIFeedback.Controllers
                 var result = await _context.AnalysisResults.FindAsync(request.ResultId);
                 if (result == null) return NotFound(new { error = "Отчет не найден" });
 
-                string answer = await _aiService.AskQuestionAsync(result.AiInsightsJson, request.Message);
+                // Передаем ProviderName третьим параметром
+                string answer = await _aiService.AskQuestionAsync(result.AiInsightsJson, request.Message, request.ProviderName);
                 return Ok(new { answer });
             }
             catch (Exception ex)

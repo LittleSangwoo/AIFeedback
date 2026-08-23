@@ -1,13 +1,15 @@
-﻿using DocumentFormat.OpenXml;
+﻿using AIFeedback.Models.DTOs;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Runtime.Intrinsics.X86;
 using System.Text.RegularExpressions;
-using AIFeedback.Models.DTOs;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace AIFeedback.Services.Report
 {
@@ -22,6 +24,15 @@ namespace AIFeedback.Services.Report
         public double InteractionAvg { get; set; }
         public double EngagementYesPercent { get; set; }
         public double OverallSatisfaction { get; set; }
+        public double UsefulnessMedian { get; set; }
+        public double PracticalityMedian { get; set; }
+        public double AvailabilityMedian { get; set; }
+        public double InteractionMedian { get; set; }
+        public double UsefulnessStdDev { get; set; }
+        public double PracticalityStdDev { get; set; }
+        public double AvailabilityStdDev { get; set; }
+        public double InteractionStdDev { get; set; }
+        public int DuplicateRowsRemoved { get; set; }
         public int FormatOfflineCount { get; set; }
         public int FormatMixedCount { get; set; }
         public int FormatOnlineCount { get; set; }
@@ -142,7 +153,37 @@ namespace AIFeedback.Services.Report
                     er3.Append(CreateCell(engPercent, true, JustificationValues.Center, 1, "D9EAD3"));
                     er3.Append(CreateCell("", false, JustificationValues.Center, 2, null, "continue"));
                     table.Append(er3);
-
+                    table.Append(CreateSectionHeaderRow("Дополнительная статистика по критериям", 14));
+                    
+                    TableRow statsHeader = new TableRow();
+                    statsHeader.Append(CreateCell("Критерий", true, JustificationValues.Center, 5));
+                    statsHeader.Append(CreateCell("Среднее", true, JustificationValues.Center, 3));
+                    statsHeader.Append(CreateCell("Медиана", true, JustificationValues.Center, 3));
+                    statsHeader.Append(CreateCell("Стандартное отклонение", true, JustificationValues.Center, 3));
+                    table.Append(statsHeader);
+                    
+                    void DrawStatsRow(string name, double avg, double median, double stdDev)
+                                      {
+                        TableRow tr = new TableRow();
+                        tr.Append(CreateCell(name, false, JustificationValues.Left, 5));
+                        tr.Append(CreateCell(avg.ToString("F1"), false, JustificationValues.Center, 3));
+                        tr.Append(CreateCell(median.ToString("F1"), false, JustificationValues.Center, 3));
+                        tr.Append(CreateCell(stdDev.ToString("F1"), false, JustificationValues.Center, 3));
+                        table.Append(tr);
+                      }
+                    DrawStatsRow("Полезность программы", data.UsefulnessAvg, data.UsefulnessMedian, data.UsefulnessStdDev);
+                    DrawStatsRow("Практико-ориентированность программы", data.PracticalityAvg, data.PracticalityMedian, data.PracticalityStdDev);
+                    DrawStatsRow("Доступность материалов по программе", data.AvailabilityAvg, data.AvailabilityMedian, data.AvailabilityStdDev);
+                    DrawStatsRow("Взаимодействие с командой", data.InteractionAvg, data.InteractionMedian, data.InteractionStdDev);
+                    
+                    if (data.DuplicateRowsRemoved > 0)
+                                           {
+                        TableRow dupRow = new TableRow();
+                        dupRow.Append(CreateCell(
+                        $"Примечание: при разборе исходного файла обнаружено и исключено из расчётов {data.DuplicateRowsRemoved} дублирующихся анкет.",
+                        false, JustificationValues.Left, 14));
+                        table.Append(dupRow);
+                        }
                     // Предложения слушателей ---
                     table.Append(CreateSectionHeaderRow("Предложения слушателей", 14));
 

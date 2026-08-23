@@ -9,15 +9,18 @@ using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Globalization;
 
+using System.IO;
+using System.Threading.Tasks;
+
 namespace AIFeedback.Services.Excel
 {
     public interface IExcelParserService
     {
-        Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson, int FormatOffline, int FormatMixed, int FormatOnline, int EngagedCount, int DetachedCount)> ParseAsync(Stream fileStream, string fileName);
+        Task<ExcelParseResult> ParseAsync(Stream fileStream, string fileName);
         Task<double> ParseHistoryFileAsync(Stream fileStream);
     }
 
-    public class ExcelParserService : IExcelParserService
+public class ExcelParserService : IExcelParserService
     {
         private readonly ILogger<ExcelParserService> _logger;
 
@@ -26,16 +29,17 @@ namespace AIFeedback.Services.Excel
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<(string ProgramName, int ListenerCount, Dictionary<string, double> NumericAverages, List<string> AllComments, int Dist1to3, int Dist4to7, int Dist8to10, string CorrelationMatrixJson, string ScoresDistributionJson, int FormatOffline, int FormatMixed, int FormatOnline, int EngagedCount, int DetachedCount)> ParseAsync(Stream fileStream, string fileName)
+        public async Task<ExcelParseResult> ParseAsync(Stream fileStream, string fileName)
         {
             return await Task.Run(() =>
             {
-                // БЕРЕМ НАЗВАНИЕ ИЗ ИМЕНИ ЗАГРУЖЕННОГО ФАЙЛА
                 string programName = Path.GetFileNameWithoutExtension(fileName);
                 if (string.IsNullOrWhiteSpace(programName))
                 {
                     programName = "Анализируемая программа";
                 }
+
+                var result = new ExcelParseResult { ProgramName = programName };
 
                 var allComments = new List<string>();
 
@@ -45,18 +49,16 @@ namespace AIFeedback.Services.Excel
                 var interactionList = new List<double>();
 
                 var scoresDist = new Dictionary<string, int[]>
-                {
-                    { "Usefulness", new int[10] },
-                    { "Practicality", new int[10] },
-                    { "Accessibility", new int[10] },
-                    { "Interaction", new int[10] }
-                };
+        {
+            { "Usefulness", new int[10] },
+            { "Practicality", new int[10] },
+            { "Accessibility", new int[10] },
+            { "Interaction", new int[10] }
+        };
 
                 int listenerCount = 0;
-
                 int dist1to3 = 0, dist4to7 = 0, dist8to10 = 0;
 
-                // еременные для подсчета вовлеченности
                 int engagedCount = 0;
                 int detachedCount = 0;
                 int totalEngagementAnswers = 0;
@@ -65,15 +67,22 @@ namespace AIFeedback.Services.Excel
                 int formatMixed = 0;
                 int formatOnline = 0;
 
+                int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1;
+                int duplicatesRemoved = 0;
+
                 try
                 {
                     using var workbook = new XLWorkbook(fileStream);
                     var worksheet = workbook.Worksheet(1);
 
                     var headerRow = worksheet.FirstRowUsed();
-                    if (headerRow == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}", 0, 0, 0, 0, 0);
+                    if (headerRow == null)
+                    {
+                        result.ParseSuccess = false;
+                        return result;
+                    }
 
-                    int usefulnessCol = -1, practicalityCol = -1, accessibilityCol = -1, interactionCol = -1, engagementCol = -1, formatCol = -1;
+                    int engagementCol = -1, formatCol = -1;
                     var textColumns = new List<int>();
 
                     foreach (var cell in headerRow.CellsUsed())
@@ -96,48 +105,82 @@ namespace AIFeedback.Services.Excel
                     }
 
                     var range = worksheet.RangeUsed();
-                    if (range == null) return (programName, 0, new Dictionary<string, double>(), allComments, 0, 0, 0, "null", "{}", 0, 0, 0, 0, 0);
+                    if (range == null)
+                    {
+                        result.ParseSuccess = false;
+                        return result;
+                    }
 
                     var rows = range.RowsUsed().Skip(1).ToList();
-                    listenerCount = rows.Count;
+
+                    // ==========================================
+                    // ДЕДУПЛИКАЦИЯ: строим сигнатуру строки из значимых столбцов
+                    // (оценки + текстовые ответы), исключая пустые анкеты из сравнения
+                    // ==========================================
+                    var seenSignatures = new HashSet<string>();
+                    var uniqueRows = new List<IXLRangeRow>();
+
+                    var signatureColumns = new List<int>();
+                    if (usefulnessCol != -1) signatureColumns.Add(usefulnessCol);
+                    if (practicalityCol != -1) signatureColumns.Add(practicalityCol);
+                    if (accessibilityCol != -1) signatureColumns.Add(accessibilityCol);
+                    if (interactionCol != -1) signatureColumns.Add(interactionCol);
+                    signatureColumns.AddRange(textColumns);
 
                     foreach (var row in rows)
+                    {
+                        var parts = signatureColumns
+                            .Select(c => row.Cell(c).Value.ToString()?.Trim().ToLowerInvariant() ?? "")
+                            .ToList();
+
+                        string signature = string.Join("|", parts);
+
+                        // Пустые строки (все значения пусты) не считаем дублями — пропускаем их как есть
+                        bool isEffectivelyEmpty = parts.All(string.IsNullOrWhiteSpace);
+
+                        if (!isEffectivelyEmpty && !seenSignatures.Add(signature))
+                        {
+                            duplicatesRemoved++;
+                            continue; // строка уже встречалась — пропускаем
+                        }
+
+                        uniqueRows.Add(row);
+                    }
+
+                    listenerCount = uniqueRows.Count;
+
+                    foreach (var row in uniqueRows)
                     {
                         var userScores = new List<double>();
 
                         if (usefulnessCol != -1 && TryParseDouble(row.Cell(usefulnessCol).Value.ToString(), out double u))
                         {
                             usefulnessList.Add(u); userScores.Add(u);
-                            int rounded = ClampScore(u);
-                            scoresDist["Usefulness"][rounded - 1]++;
+                            scoresDist["Usefulness"][ClampScore(u) - 1]++;
                         }
                         else { usefulnessList.Add(0); }
 
                         if (practicalityCol != -1 && TryParseDouble(row.Cell(practicalityCol).Value.ToString(), out double p))
                         {
                             practicalityList.Add(p); userScores.Add(p);
-                            int rounded = ClampScore(p);
-                            scoresDist["Practicality"][rounded - 1]++;
+                            scoresDist["Practicality"][ClampScore(p) - 1]++;
                         }
                         else { practicalityList.Add(0); }
 
                         if (accessibilityCol != -1 && TryParseDouble(row.Cell(accessibilityCol).Value.ToString(), out double a))
                         {
                             accessibilityList.Add(a); userScores.Add(a);
-                            int rounded = ClampScore(a);
-                            scoresDist["Accessibility"][rounded - 1]++;
+                            scoresDist["Accessibility"][ClampScore(a) - 1]++;
                         }
                         else { accessibilityList.Add(0); }
 
                         if (interactionCol != -1 && TryParseDouble(row.Cell(interactionCol).Value.ToString(), out double i))
                         {
                             interactionList.Add(i); userScores.Add(i);
-                            int rounded = ClampScore(i);
-                            scoresDist["Interaction"][rounded - 1]++;
+                            scoresDist["Interaction"][ClampScore(i) - 1]++;
                         }
                         else { interactionList.Add(0); }
 
-                        // ВОВЛЕЧЕННОСТЬ
                         if (engagementCol != -1)
                         {
                             var detachmentAnswer = row.Cell(engagementCol).Value.ToString()?.Trim().ToLower();
@@ -149,7 +192,6 @@ namespace AIFeedback.Services.Excel
                             }
                         }
 
-                        // ПРЕДПОЧТИТЕЛЬНЫЙ ФОРМАТ ОБУЧЕНИЯ
                         if (formatCol != -1)
                         {
                             var formatAnswer = row.Cell(formatCol).Value.ToString()?.Trim().ToLower();
@@ -161,7 +203,6 @@ namespace AIFeedback.Services.Excel
                             }
                         }
 
-                        // РАСПРЕДЕЛЕНИЕ 1-3, 4-7, 8-10
                         if (userScores.Count > 0)
                         {
                             double avgScore = userScores.Average();
@@ -172,7 +213,6 @@ namespace AIFeedback.Services.Excel
                             else if (roundedScore >= 8 && roundedScore <= 10) dist8to10++;
                         }
 
-                        // КОММЕНТАРИИ
                         foreach (int colIndex in textColumns)
                         {
                             var comment = row.Cell(colIndex).Value.ToString()?.Trim();
@@ -186,35 +226,85 @@ namespace AIFeedback.Services.Excel
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ошибка при парсинге основного Excel файла.");
+                    result.ParseSuccess = false;
                 }
 
-                var averages = new Dictionary<string, double>
+                double Median(List<double> values)
                 {
-                    { "Usefulness", usefulnessList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
-                    { "Practicality", practicalityList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
-                    { "Accessibility", accessibilityList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
-                    { "Interaction", interactionList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
-                    { "Engagement", totalEngagementAnswers > 0 ? Math.Round((double)engagedCount / totalEngagementAnswers * 100) : 0 }
-                };
+                    var clean = values.Where(x => x > 0).OrderBy(x => x).ToList();
+                    if (clean.Count == 0) return 0;
+                    int mid = clean.Count / 2;
+                    return clean.Count % 2 != 0
+                        ? clean[mid]
+                        : Math.Round((clean[mid - 1] + clean[mid]) / 2.0, 2);
+                }
+
+                double StdDev(List<double> values)
+                {
+                    var clean = values.Where(x => x > 0).ToList();
+                    if (clean.Count <= 1) return 0;
+                    double avg = clean.Average();
+                    double sumSquares = clean.Sum(x => Math.Pow(x - avg, 2));
+                    return Math.Round(Math.Sqrt(sumSquares / (clean.Count - 1)), 2);
+                }
+
+                result.NumericAverages = new Dictionary<string, double>
+        {
+            { "Usefulness", usefulnessList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
+            { "Practicality", practicalityList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
+            { "Accessibility", accessibilityList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
+            { "Interaction", interactionList.Where(x => x > 0).DefaultIfEmpty(0).Average() },
+            { "Engagement", totalEngagementAnswers > 0 ? Math.Round((double)engagedCount / totalEngagementAnswers * 100) : 0 }
+        };
+
+                result.NumericMedians = new Dictionary<string, double>
+        {
+            { "Usefulness", Median(usefulnessList) },
+            { "Practicality", Median(practicalityList) },
+            { "Accessibility", Median(accessibilityList) },
+            { "Interaction", Median(interactionList) }
+        };
+
+                result.NumericStdDeviations = new Dictionary<string, double>
+        {
+            { "Usefulness", StdDev(usefulnessList) },
+            { "Practicality", StdDev(practicalityList) },
+            { "Accessibility", StdDev(accessibilityList) },
+            { "Interaction", StdDev(interactionList) }
+        };
 
                 var matrix = new double[4][];
                 var dataLists = new List<List<double>> { usefulnessList, practicalityList, accessibilityList, interactionList };
-
                 for (int i = 0; i < 4; i++)
                 {
                     matrix[i] = new double[4];
                     for (int j = 0; j < 4; j++)
                     {
-                        if (i == j) matrix[i][j] = 1.0;
-                        else matrix[i][j] = CalculatePearsonCorrelation(dataLists[i], dataLists[j]);
+                        matrix[i][j] = i == j ? 1.0 : CalculatePearsonCorrelation(dataLists[i], dataLists[j]);
                     }
                 }
 
-                string matrixJson = JsonSerializer.Serialize(matrix);
-                string distJson = JsonSerializer.Serialize(scoresDist);
+                result.ListenerCount = listenerCount;
+                result.AllComments = allComments;
+                result.Dist1to3 = dist1to3;
+                result.Dist4to7 = dist4to7;
+                result.Dist8to10 = dist8to10;
+                result.CorrelationMatrixJson = JsonSerializer.Serialize(matrix);
+                result.ScoresDistributionJson = JsonSerializer.Serialize(scoresDist);
+                result.FormatOffline = formatOffline;
+                result.FormatMixed = formatMixed;
+                result.FormatOnline = formatOnline;
+                result.EngagedCount = engagedCount;
+                result.DetachedCount = detachedCount;
+                result.DuplicateRowsRemoved = duplicatesRemoved;
 
-                // Возвращаем engagedCount и detachedCount
-                return (programName, listenerCount, averages, allComments, dist1to3, dist4to7, dist8to10, matrixJson, distJson, formatOffline, formatMixed, formatOnline, engagedCount, detachedCount);
+                bool noMetricColumnsFound = listenerCount > 0
+                    && usefulnessCol == -1 && practicalityCol == -1
+                    && accessibilityCol == -1 && interactionCol == -1;
+
+                result.ParseSuccess = result.ParseSuccess && !noMetricColumnsFound;
+
+                return result;
             });
         }
 

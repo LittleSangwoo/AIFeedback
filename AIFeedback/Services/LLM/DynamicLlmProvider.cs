@@ -35,8 +35,10 @@ namespace AIFeedback.Services.LLM
                    ?? new List<LlmProviderConfig>();
 
             // Ищем провайдера, которого выбрал пользователь, или берем дефолтного
+            var activeProviderName = _settingsService.GetActiveProvider()?.Name;
+
             var providerConfig = allProviders.FirstOrDefault(p => !string.IsNullOrEmpty(providerName) && p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase))
-                              
+                              ?? allProviders.FirstOrDefault(p => p.Name == activeProviderName)
                               ?? allProviders.FirstOrDefault();
 
             if (providerConfig == null) throw new InvalidOperationException("Конфигурация нейросетей пуста.");

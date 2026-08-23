@@ -33,7 +33,7 @@ namespace AIFeedback.Controllers
             _repository = repository;
             _reportService = reportService;
         }
-
+        private const int MaxCommentsCharsForAi = 20000;
         [HttpPost]
         [RequestSizeLimit(104857600)] // Увеличиваем лимит запроса до 100 МБ для мульти-загрузки
         public async Task<IActionResult> ProcessFile(IFormFile uploadFile, List<IFormFile> historyFiles, bool isTrendEnabled, string providerName)
@@ -43,32 +43,47 @@ namespace AIFeedback.Controllers
                 return BadRequest("Основной файл не выбран");
             }
 
-            //  ПАРСИНГ ОСНОВНОГО ФАЙЛА
+            // ==========================================
+            // 1. ПАРСИНГ ОСНОВНОГО ФАЙЛА
+            // ==========================================
+            var parsed = await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
 
-            // ПЕРЕДАЕМ uploadFile.FileName В ПАРСЕР И ПРИНИМАЕМ ДАННЫЕ О ФОРМАТЕ ОБУЧЕНИЯ
-            var (progName, listenerCount, numericAvgs, allComments, d1to3, d4to7, d8to10, matrixJson, distJson, fOffline, fMixed, fOnline, eCount, dCount) =
-                await _excelParserService.ParseAsync(uploadFile.OpenReadStream(), uploadFile.FileName);
+            if (!parsed.ParseSuccess)
+            {
+                TempData["ExcelWarning"] = "Не удалось корректно распознать структуру файла: возможно, заголовки столбцов " +
+                    "отличаются от ожидаемого шаблона (шкалы «по 10», вопрос об отстранённости, вопрос о формате обучения), " +
+                    "либо файл пуст. Показатели ниже могут быть неполными или равны нулю — рекомендуем сверить формат файла " +
+                    "с образцом и загрузить его повторно.";
+            }
 
-            double avgUtility = numericAvgs.GetValueOrDefault("Usefulness", 0);
-            double avgPractice = numericAvgs.GetValueOrDefault("Practicality", 0);
-            double avgAccessibility = numericAvgs.GetValueOrDefault("Accessibility", 0);
-            double avgInteraction = numericAvgs.GetValueOrDefault("Interaction", 0);
+            if (parsed.DuplicateRowsRemoved > 0)
+            {
+                TempData["DuplicateInfo"] = $"При разборе файла обнаружено и исключено из расчётов {parsed.DuplicateRowsRemoved} " +
+                    $"дублирующихся анкет — они не повлияли на итоговую статистику.";
+            }
+
+            double avgUtility = parsed.NumericAverages.GetValueOrDefault("Usefulness", 0);
+            double avgPractice = parsed.NumericAverages.GetValueOrDefault("Practicality", 0);
+            double avgAccessibility = parsed.NumericAverages.GetValueOrDefault("Accessibility", 0);
+            double avgInteraction = parsed.NumericAverages.GetValueOrDefault("Interaction", 0);
 
             // Считаем точный процент вовлеченности
-            int totalE = eCount + dCount;
-            int engPct = totalE > 0 ? (int)Math.Round((double)eCount / totalE * 100) : 0;
+            int totalE = parsed.EngagedCount + parsed.DetachedCount;
+            int engPct = totalE > 0 ? (int)Math.Round((double)parsed.EngagedCount / totalE * 100) : 0;
 
             // Общая удовлетворенность текущего потока
             double overallSatisfaction = (avgUtility + avgPractice + avgAccessibility + avgInteraction) / 4.0;
 
-            string rawComments = string.Join("\n", allComments);
+            string rawComments = BuildSampledCommentsText(parsed.AllComments, MaxCommentsCharsForAi);
 
+            // ==========================================
+            // 2. ОБРАБОТКА ИСТОРИЧЕСКИХ ФАЙЛОВ (ТРЕНД С ГРУППИРОВКОЙ)
+            // ==========================================
             var trendLabels = new List<string>();
             var trendValues = new List<double>();
 
             if (isTrendEnabled && historyFiles != null && historyFiles.Count > 0)
             {
-                // Словарь для группировки: Ключ - очищенное имя потока, Значение - список баллов
                 var groupedHistory = new Dictionary<string, List<double>>();
 
                 foreach (var file in historyFiles)
@@ -89,7 +104,6 @@ namespace AIFeedback.Controllers
                     }
                 }
 
-                // Усредняем баллы для каждой группы и сортируем по имени (чтобы даты шли по порядку)
                 var historyData = groupedHistory
                     .Select(kvp => (Name: kvp.Key, Score: kvp.Value.Average()))
                     .OrderBy(x => x.Name)
@@ -99,14 +113,19 @@ namespace AIFeedback.Controllers
                 trendValues.AddRange(historyData.Select(x => x.Score));
             }
 
-            // Добавляем результаты текущего файла в самый конец тренда
             trendLabels.Add("Текущий поток");
             trendValues.Add(Math.Round(overallSatisfaction, 1));
 
-            // ПРОМПТЫ И ВЫЗОВ ИИ
+            // ==========================================
+            // 3. ПРОМПТЫ И ВЫЗОВ ИИ
+            // ==========================================
             string systemPrompt = @"Ты — профессиональный AI-аналитик образовательных программ. Твоя задача проанализировать сырые отзывы и метрики, и выдать детальный профессиональный отчет СТРОГО в формате JSON.
 Не используй markdown (никаких ```json). 
-Опирайся на реальные цифры и комментарии. Структура JSON должна быть РОВНО такой:
+Опирайся на реальные цифры и комментарии. Сформируй от 3 до 7 объектов в разделе Conclusions (не меньше 3 и не больше 7), 
+отсортированных по важности (High — сначала). Для каждого вывода в SupportingQuotes укажи 1–3 ДОСЛОВНЫЕ цитаты 
+из предоставленных комментариев слушателей — не придумывай и не перефразируй цитаты, бери только реально 
+встречающиеся в тексте формулировки. MentionsCount — примерное количество похожих по смыслу комментариев.
+Структура JSON должна быть РОВНО такой:
 
 {
   ""Sentiment"": {
@@ -125,7 +144,10 @@ namespace AIFeedback.Controllers
     {
       ""Priority"": ""High"",
       ""Action"": ""Что нужно сделать"",
-      ""DataProof"": ""Обоснование на основе цифр""
+      ""DataProof"": ""Обоснование на основе цифр"",
+     ""SupportingQuotes"": [
+      { ""Text"": ""Дословная цитата из комментария слушателя"", ""MentionsCount"": 3 }
+     ]
     }
   ],
   ""MetricsNotes"": {
@@ -146,19 +168,33 @@ namespace AIFeedback.Controllers
   }
 }";
 
-            // Если текст отзывов длиннее 10000 символов, берем только начало
-            if (rawComments.Length > 10000)
-            {
-                rawComments = rawComments.Substring(0, 10000) + "... [ДАННЫЕ ОБРЕЗАНЫ ИЗ-ЗА ЛИМИТОВ]";
-            }
+            //if (rawComments.Length > 10000)
+            //{
+            //    rawComments = rawComments.Substring(0, 10000) + "... [ДАННЫЕ ОБРЕЗАНЫ ИЗ-ЗА ЛИМИТОВ]";
+            //}
 
-            string userPrompt = $"Слушателей: {listenerCount}. Средние баллы: Полезность {avgUtility}, Практика {avgPractice}, Доступность {avgAccessibility}, Взаимодействие {avgInteraction}. Вовлечены: {eCount} чел ({engPct}%), Отстранены: {dCount} чел.\nТекстовые отзывы:\n{rawComments}";
+            string userPrompt = $"Слушателей: {parsed.ListenerCount}. Средние баллы: Полезность {avgUtility}, Практика {avgPractice}, Доступность {avgAccessibility}, Взаимодействие {avgInteraction}. Вовлечены: {parsed.EngagedCount} чел ({engPct}%), Отстранены: {parsed.DetachedCount} чел.\nТекстовые отзывы:\n{rawComments}";
 
             AiAnalysisResultDto analysisResult = new AiAnalysisResultDto();
 
             try
             {
                 analysisResult = await _aiService.AnalyzeFeedbackAsync(systemPrompt, userPrompt, providerName);
+                if (analysisResult.Conclusions != null && analysisResult.Conclusions.Count > 7)
+               {
+                   int Weight(string priority) => (priority ?? "").ToLower() switch
+                   {
+                       "high" or "высокий" => 3,
+                       "medium" or "средний" => 2,
+                       "low" or "низкий" => 1,
+                       _ => 0
+                   };
+
+                   analysisResult.Conclusions = analysisResult.Conclusions
+                       .OrderByDescending(c => Weight(c.Priority))
+                       .Take(7)
+                       .ToList();
+               }
             }
             catch (Exception ex)
             {
@@ -166,13 +202,14 @@ namespace AIFeedback.Controllers
                 TempData["AiWarning"] = "Связь с нейросетью временно недоступна. Дашборд построен только на основе расчетов.";
             }
 
-            //СОХРАНЕНИЕ В БАЗУ ДАННЫХ
-
+            // ==========================================
+            // 4. СОХРАНЕНИЕ В БАЗУ ДАННЫХ
+            // ==========================================
             var analysisRecord = new AnalysisResult
             {
-                SessionName = !string.IsNullOrEmpty(progName) ? progName : "Аналитическая справка",
-                ProgramName = progName,
-                ListenerCount = listenerCount,
+                SessionName = !string.IsNullOrEmpty(parsed.ProgramName) ? parsed.ProgramName : "Аналитическая справка",
+                ProgramName = parsed.ProgramName,
+                ListenerCount = parsed.ListenerCount,
                 CreatedAt = DateTime.UtcNow,
 
                 UsefulnessAvg = avgUtility,
@@ -182,28 +219,39 @@ namespace AIFeedback.Controllers
                 OverallSatisfaction = overallSatisfaction,
                 EngagementYesPercent = engPct,
 
-                Dist1to3 = d1to3,
-                Dist4to7 = d4to7,
-                Dist8to10 = d8to10,
+                UsefulnessMedian = parsed.NumericMedians.GetValueOrDefault("Usefulness", 0),
+                PracticalityMedian = parsed.NumericMedians.GetValueOrDefault("Practicality", 0),
+                AvailabilityMedian = parsed.NumericMedians.GetValueOrDefault("Accessibility", 0),
+                InteractionMedian = parsed.NumericMedians.GetValueOrDefault("Interaction", 0),
 
-                FormatOfflineCount = fOffline,
-                FormatMixedCount = fMixed,
-                FormatOnlineCount = fOnline,
+                UsefulnessStdDev = parsed.NumericStdDeviations.GetValueOrDefault("Usefulness", 0),
+                PracticalityStdDev = parsed.NumericStdDeviations.GetValueOrDefault("Practicality", 0),
+                AvailabilityStdDev = parsed.NumericStdDeviations.GetValueOrDefault("Accessibility", 0),
+                InteractionStdDev = parsed.NumericStdDeviations.GetValueOrDefault("Interaction", 0),
 
-                EngagedCount = eCount,
-                DetachedCount = dCount,
+                DuplicateRowsRemoved = parsed.DuplicateRowsRemoved,
+
+                Dist1to3 = parsed.Dist1to3,
+                Dist4to7 = parsed.Dist4to7,
+                Dist8to10 = parsed.Dist8to10,
+
+                FormatOfflineCount = parsed.FormatOffline,
+                FormatMixedCount = parsed.FormatMixed,
+                FormatOnlineCount = parsed.FormatOnline,
+
+                EngagedCount = parsed.EngagedCount,
+                DetachedCount = parsed.DetachedCount,
 
                 SentimentJson = JsonSerializer.Serialize(analysisResult.Sentiment),
                 ThemesJson = JsonSerializer.Serialize(analysisResult.TopTopics),
                 RecommendationsJson = JsonSerializer.Serialize(analysisResult.Conclusions),
 
-                // Сохраняем новый расширенный ответ ии 
                 AiInsightsJson = JsonSerializer.Serialize(analysisResult),
 
                 TrendLabelsJson = JsonSerializer.Serialize(trendLabels),
                 TrendValuesJson = JsonSerializer.Serialize(trendValues),
-                CorrelationMatrixJson = matrixJson,
-                ScoresDistributionJson = distJson
+                CorrelationMatrixJson = parsed.CorrelationMatrixJson,
+                ScoresDistributionJson = parsed.ScoresDistributionJson
             };
 
             await _repository.AddAsync(analysisRecord);
@@ -232,6 +280,34 @@ namespace AIFeedback.Controllers
             string pattern = @"(?i)(_v\d+|-копия|\(\d+\)|_доп.*|_часть.*|_финал|\s+копия).*$";
             string cleanName = Regex.Replace(fileName, pattern, "");
             return cleanName.Trim(' ', '_', '-');
+        }
+        private string BuildSampledCommentsText(List<string> comments, int maxChars)
+        {
+            if (comments == null || comments.Count == 0) return string.Empty;
+
+            string joinedAll = string.Join("\n", comments);
+            if (joinedAll.Length <= maxChars) return joinedAll;
+
+            // Комментариев слишком много для одного запроса к ИИ. Вместо обрезки хвоста
+            // (что теряет данные последних анкет) берём равномерную выборку по всему списку —
+            // итоговый текст отражает весь поток, а не только начало файла.
+            double avgLen = Math.Max(1.0, (double)joinedAll.Length / comments.Count);
+            int approxCount = Math.Max(1, (int)(maxChars / avgLen));
+            double stride = (double)comments.Count / approxCount;
+
+            var sb = new System.Text.StringBuilder();
+            var usedIndexes = new HashSet<int>();
+
+            for (double idx = 0; idx < comments.Count; idx += stride)
+            {
+                int i = (int)idx;
+                if (!usedIndexes.Add(i)) continue;
+                if (sb.Length >= maxChars) break;
+                sb.AppendLine(comments[i]);
+            }
+
+            sb.Append($"\n... [Показана репрезентативная выборка из {usedIndexes.Count} из {comments.Count} комментариев из-за ограничения размера запроса к ИИ-провайдеру]");
+            return sb.ToString();
         }
     }
 }

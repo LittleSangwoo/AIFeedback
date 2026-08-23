@@ -107,5 +107,16 @@ namespace AIFeedback.Models.DTOs
 
         [JsonPropertyName("DataProof")]
         public string DataProof { get; set; } = string.Empty;
+
+        [JsonPropertyName("SupportingQuotes")]
+       public List<QuoteDto> SupportingQuotes { get; set; } = new List<QuoteDto>();
     }
+    public class QuoteDto
+  {
+      [JsonPropertyName("Text")]
+       public string Text { get; set; } = string.Empty;
+
+      [JsonPropertyName("MentionsCount")]
+       public int MentionsCount { get; set; }
+  }
 }

@@ -18,7 +18,17 @@ namespace AIFeedback.ViewModels
         public double InteractionAvg { get; set; }
         public double EngagementYesPercent { get; set; }
         public double OverallSatisfaction { get; set; }
+        public double UsefulnessMedian { get; set; }
+       public double PracticalityMedian { get; set; }
+       public double AvailabilityMedian { get; set; }
+      public double InteractionMedian { get; set; }
 
+      public double UsefulnessStdDev { get; set; }
+       public double PracticalityStdDev { get; set; }
+       public double AvailabilityStdDev { get; set; }
+       public double InteractionStdDev { get; set; }
+
+       public int DuplicateRowsRemoved { get; set; }
         // Результаты ИИ-анализа
         public AiAnalysisResultDto? AiAnalysis { get; set; }
 
