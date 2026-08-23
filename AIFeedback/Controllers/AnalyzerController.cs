@@ -199,7 +199,7 @@ namespace AIFeedback.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Предупреждение: ИИ-анализ пропущен: {ex.Message}");
-                TempData["AiWarning"] = "Связь с нейросетью временно недоступна. Дашборд построен только на основе расчетов.";
+                TempData["AiWarning"] = BuildAiFailureMessage(ex);
             }
 
             // ==========================================
@@ -259,7 +259,55 @@ namespace AIFeedback.Controllers
 
             return RedirectToAction("Details", "Dashboard", new { id = analysisRecord.Id });
         }
+        private string BuildAiFailureMessage(Exception ex)
+        {
+            string msg = ex.Message ?? string.Empty;
 
+            string suffix = " Дашборд построен только на основе расчетов.";
+
+            // Провайдер вообще не найден в конфигурации (см. DynamicLlmProvider)
+            if (msg.Contains("не найден в конфигурации", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("Конфигурация нейросетей пуста", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Выбранный провайдер ИИ не настроен или отсутствует в конфигурации. " +
+                       "Проверьте раздел «Шлюзы ИИ»." + suffix;
+            }
+
+            // Неверный или отсутствующий API-ключ
+            if (msg.Contains("invalid_api_key", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("(401)", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Ошибка авторизации у провайдера ИИ — проверьте API-ключ в разделе «Шлюзы ИИ»." + suffix;
+            }
+
+            // Превышен лимит запросов провайдера
+            if (msg.Contains("rate_limit_exceeded", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("RequestEntityTooLarge", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("(429)", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Провайдер ИИ временно ограничивает частоту запросов (превышен лимит токенов в минуту). " +
+                       "Попробуйте загрузить файл ещё раз через несколько минут." + suffix;
+            }
+
+            // Провайдер вернул пустой ответ / не удалось распарсить JSON (см. AiService)
+            if (msg.Contains("пустой ответ", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("парсинг JSON не удался", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Провайдер ИИ вернул некорректный или пустой ответ. Возможно, сработал фильтр контента " +
+                       "или закончились токены. Попробуйте другого провайдера в форме загрузки." + suffix;
+            }
+
+            // Сетевые сбои (нет соединения, DNS, таймаут и т.д.)
+            if (ex is System.Net.Http.HttpRequestException || ex is TaskCanceledException || ex is TimeoutException)
+            {
+                return "Не удалось подключиться к серверу провайдера ИИ — проверьте подключение к интернету " +
+                       "или доступность сервиса." + suffix;
+            }
+
+            // Всё остальное — общая формулировка как раньше
+            return "Связь с нейросетью временно недоступна." + suffix;
+        }
         // Очистка имен файлов
         private string CleanFileName(string fileName)
         {
