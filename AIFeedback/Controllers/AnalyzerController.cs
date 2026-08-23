@@ -211,6 +211,7 @@ namespace AIFeedback.Controllers
                 ProgramName = parsed.ProgramName,
                 ListenerCount = parsed.ListenerCount,
                 CreatedAt = DateTime.UtcNow,
+                ProviderName = providerName,
 
                 UsefulnessAvg = avgUtility,
                 PracticalityAvg = avgPractice,

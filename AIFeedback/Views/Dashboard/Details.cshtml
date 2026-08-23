@@ -529,9 +529,10 @@
         const loadingId = appendMessage('AI-Аналитик', 'Анализирую...', 'ai', true);
 
         try {
-                const response = await fetch('/Dashboard/AskAi', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ResultId: resultId, Message: message, ProviderName: 'yandex1' })
+                    const response = await fetch('/Dashboard/AskAi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ResultId: resultId, Message: message })
     });
 
             const data = await response.json();

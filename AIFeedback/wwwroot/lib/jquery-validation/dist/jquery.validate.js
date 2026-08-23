@@ -1604,7 +1604,7 @@ $.extend( $.validator, {
 			method = typeof method === "string" && method || "remote";
 
 			var previous = this.previousValue( element, method ),
-				validator, data, optionDataString;
+				validator, data, optionDaring;
 
 			if ( !this.settings.messages[ element.name ] ) {
 				this.settings.messages[ element.name ] = {};

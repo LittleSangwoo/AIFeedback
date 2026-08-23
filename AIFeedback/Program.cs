@@ -54,7 +54,6 @@ builder.Services.AddHttpClient<ILLMProvider, DynamicLlmProvider>()
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<AIFeedback.Services.LLM.Providers.LLMProviderFactory>();
-builder.Services.AddScoped<AIFeedback.Services.LLM.ILLMProvider, AIFeedback.Services.LLM.DynamicLlmProvider>();
 builder.Services.AddScoped<AIFeedback.Services.IAiService, AIFeedback.Services.AiService>();
 builder.Services.AddScoped<AIFeedback.Data.IAnalysisResultRepository, AIFeedback.Data.AnalysisResultRepository>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

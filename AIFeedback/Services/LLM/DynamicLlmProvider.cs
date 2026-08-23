@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AIFeedback.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AIFeedback.Services.LLM
 {
@@ -14,36 +16,60 @@ namespace AIFeedback.Services.LLM
     {
         private readonly HttpClient _httpClient;
         private readonly ILlmSettingsService _settingsService;
+        private readonly ILogger<DynamicLlmProvider> _logger;
         private string _gigaChatToken;
         private DateTime _gigaChatTokenExpiresAt;
 
-        public DynamicLlmProvider(HttpClient httpClient, ILlmSettingsService settingsService)
+        public DynamicLlmProvider(HttpClient httpClient, ILlmSettingsService settingsService, ILogger<DynamicLlmProvider> logger)
         {
             _httpClient = httpClient;
             _settingsService = settingsService;
+            _logger = logger;
         }
-        // ДОБАВЬ ВОТ ЭТУ СТРОКУ:
+
         public string ProviderName => _settingsService.GetActiveProvider()?.Name ?? "DynamicProvider";
 
         public async Task<string> AnalyzeTextAsync(string systemPrompt, string userPrompt, double temperature = 0.0, string providerName = null)
         {
-            // читаем текущие настройки (можно кэшировать для скорости)
-            string json = await System.IO.File.ReadAllTextAsync("llm_providers.json");
+            string fullPath = Path.GetFullPath("llm_providers.json");
+            _logger.LogInformation("DynamicLlmProvider: читаю '{Path}', запрошен providerName='{ProviderName}'", fullPath, providerName ?? "(не указан)");
 
-
+            string json = await System.IO.File.ReadAllTextAsync(fullPath);
             var allProviders = JsonSerializer.Deserialize<List<LlmProviderConfig>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                    ?? new List<LlmProviderConfig>();
 
-            // Ищем провайдера, которого выбрал пользователь, или берем дефолтного
-            var activeProviderName = _settingsService.GetActiveProvider()?.Name;
+            _logger.LogInformation("DynamicLlmProvider: загружено {Count} провайдеров: {Names}",
+                allProviders.Count, string.Join(", ", allProviders.Select(p => $"'{p.Name}'")));
 
-            var providerConfig = allProviders.FirstOrDefault(p => !string.IsNullOrEmpty(providerName) && p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase))
-                              ?? allProviders.FirstOrDefault(p => p.Name == activeProviderName)
-                              ?? allProviders.FirstOrDefault();
+            LlmProviderConfig providerConfig;
 
-            if (providerConfig == null) throw new InvalidOperationException("Конфигурация нейросетей пуста.");
+            if (!string.IsNullOrEmpty(providerName))
+            {
+                // Провайдер запрошен явно — ищем ТОЛЬКО его. Никакого тихого отката на другого провайдера:
+                // если явно выбранный провайдер не найден, это ошибка конфигурации, и она должна быть видна.
+                providerConfig = allProviders.FirstOrDefault(p => p.Name.Equals(providerName, StringComparison.OrdinalIgnoreCase));
 
-            //  Формируем универсальный запрос в формате OpenAI (подходит для Ollama, Groq, кастомных API)
+                if (providerConfig == null)
+                {
+                    _logger.LogWarning("DynamicLlmProvider: провайдер '{ProviderName}' НЕ найден среди {Count} загруженных.", providerName, allProviders.Count);
+                    throw new InvalidOperationException(
+                        $"Провайдер ИИ «{providerName}» не найден в конфигурации (llm_providers.json). " +
+                        $"Проверьте раздел «Шлюзы ИИ» — возможно, провайдер был переименован или удалён.");
+                }
+            }
+            else
+            {
+                // Провайдер не указан явно — используем активного по умолчанию
+                var activeProviderName = _settingsService.GetActiveProvider()?.Name;
+                providerConfig = allProviders.FirstOrDefault(p => p.Name == activeProviderName)
+                                  ?? allProviders.FirstOrDefault();
+
+                if (providerConfig == null)
+                    throw new InvalidOperationException("Конфигурация нейросетей пуста.");
+            }
+
+            _logger.LogInformation("DynamicLlmProvider: выбран провайдер '{Name}', BaseUrl='{BaseUrl}'", providerConfig.Name, providerConfig.BaseUrl);
+
             var payload = new
             {
                 model = providerConfig.Model,
@@ -60,7 +86,6 @@ namespace AIFeedback.Services.LLM
             var requestContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, providerConfig.BaseUrl) { Content = requestContent };
 
-            //  Гибкая маршрутизация авторизации
             bool isYandex = providerConfig.Name.Contains("yandex", StringComparison.OrdinalIgnoreCase) ||
                             providerConfig.BaseUrl.Contains("yandex");
             bool isGigaChat = providerConfig.Name.Contains("giga", StringComparison.OrdinalIgnoreCase);
@@ -80,23 +105,21 @@ namespace AIFeedback.Services.LLM
             }
             else if (!string.IsNullOrEmpty(providerConfig.ApiKey))
             {
-                // Стандартный подход для всех остальных (Ollama работает без ключа, поэтому условие не сработает)
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", providerConfig.ApiKey);
             }
 
-            // Отправка и обработка
             var response = await _httpClient.SendAsync(requestMessage);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError("DynamicLlmProvider: ошибка API {Name} ({Status}): {Body}", providerConfig.Name, response.StatusCode, errorBody);
                 throw new HttpRequestException($"Ошибка API {providerConfig.Name} ({response.StatusCode}): {errorBody}");
             }
 
             var responseString = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseString);
 
-            // Универсальный парсинг ответа
             return document.RootElement
                 .GetProperty("choices")[0]
                 .GetProperty("message")
@@ -104,7 +127,6 @@ namespace AIFeedback.Services.LLM
                 .GetString();
         }
 
-        // Вспомогательный метод для GigaChat
         private async Task<string> GetGigaChatTokenAsync(string authKey)
         {
             if (!string.IsNullOrEmpty(_gigaChatToken) && DateTime.UtcNow < _gigaChatTokenExpiresAt) return _gigaChatToken;

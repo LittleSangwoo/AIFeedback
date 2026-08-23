@@ -52,7 +52,8 @@ namespace AIFeedback.Data
         public double PracticalityStdDev { get; set; }
         public double AvailabilityStdDev { get; set; }
         public double InteractionStdDev { get; set; }
-        
+        public string? ProviderName { get; set; }
+
         // Сколько дублирующихся анкет было исключено при разборе файла
         public int DuplicateRowsRemoved { get; set; }
         // Для отладки 

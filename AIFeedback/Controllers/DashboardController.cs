@@ -5,6 +5,7 @@ using AIFeedback.Services.Report;
 using AIFeedback.ViewModels;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
+using PuppeteerSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,13 +21,15 @@ namespace AIFeedback.Controllers
         private readonly IReportService _reportService;
         private readonly ApplicationDbContext _context;
         private readonly IAiService _aiService;
+        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(IAnalysisResultRepository repository, IReportService reportService, ApplicationDbContext context, IAiService aiService)
+        public DashboardController(IAnalysisResultRepository repository, IReportService reportService, ApplicationDbContext context, IAiService aiService, ILogger<DashboardController> logger)
         {
             _repository = repository;
             _reportService = reportService;
             _context = context;
             _aiService = aiService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -53,6 +56,8 @@ namespace AIFeedback.Controllers
         {
             var result = await _repository.GetByIdAsync(id);
             if (result == null) return NotFound("Отчет не найден");
+
+            
 
             using var workbook = new XLWorkbook();
             var ws = workbook.Worksheets.Add("Аналитическая справка");
@@ -322,8 +327,10 @@ namespace AIFeedback.Controllers
                 var result = await _context.AnalysisResults.FindAsync(request.ResultId);
                 if (result == null) return NotFound(new { error = "Отчет не найден" });
 
+                _logger.LogInformation("AskAi: ResultId={ResultId}, ProviderName из БД='{ProviderName}'", request.ResultId, result.ProviderName ?? "(null)");
+
                 // Передаем ProviderName третьим параметром
-                string answer = await _aiService.AskQuestionAsync(result.AiInsightsJson, request.Message, request.ProviderName);
+                string answer = await _aiService.AskQuestionAsync(result.AiInsightsJson, request.Message, result.ProviderName);
                 return Ok(new { answer });
             }
             catch (Exception ex)
