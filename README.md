@@ -77,7 +77,7 @@
 
 ```bash
 # 1. Клонирование репозитория
-git clone [https://github.com/LittleSangwoo/AIFeedback.git](https://github.com/LittleSangwoo/AIFeedback.git)
+git clone https://github.com/LittleSangwoo/AIFeedback.git
 
 # 2. Сборка и запуск контейнеров (выполнять в директории с docker-compose.yml)
 docker-compose up -d --build
